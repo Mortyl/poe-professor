@@ -38,3 +38,5 @@ Thumbs.db
 # Misc
 *.log
 .claude/
+CLAUDE.md
+AGENTS.md
