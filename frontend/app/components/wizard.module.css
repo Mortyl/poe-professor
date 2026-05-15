@@ -1,0 +1,349 @@
+/* wizard.module.css — matches PoEProfessor dark gold aesthetic */
+
+.backBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid #2a2a3a;
+  color: #4a4a6a;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 7px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.backBtn:hover {
+  border-color: #c8963c;
+  color: #c8963c;
+}
+
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Breadcrumb progress */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+}
+
+.breadcrumbItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.breadcrumbStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 2px;
+  cursor: default;
+  transition: all 0.15s;
+}
+
+.breadcrumbStep[disabled] {
+  cursor: default;
+}
+
+.breadcrumbDone {
+  cursor: pointer !important;
+}
+
+.breadcrumbDone:hover {
+  background: #1a1a2a;
+}
+
+.breadcrumbNum {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1a1a2a;
+  border: 1px solid #2a2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #4a4a6a;
+  flex-shrink: 0;
+}
+
+.breadcrumbLabel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a4a6a;
+}
+
+.breadcrumbCurrent .breadcrumbNum {
+  background: #1a1500;
+  border-color: #c8963c;
+  color: #c8963c;
+}
+
+.breadcrumbCurrent .breadcrumbLabel {
+  color: #c8963c;
+}
+
+.breadcrumbDone .breadcrumbNum {
+  background: #0d1a0d;
+  border-color: #3a6a3a;
+  color: #5a9a5a;
+}
+
+.breadcrumbDone .breadcrumbLabel {
+  color: #5a9a5a;
+}
+
+.breadcrumbArrow {
+  font-size: 16px;
+  color: #2a2a3a;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.breadcrumbArrowDone {
+  color: #3a6a3a;
+}
+
+/* Selection summary */
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #111118;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+}
+
+.summaryTag {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c8963c;
+  background: #1a1500;
+  border: 1px solid #c8963c33;
+  padding: 3px 10px;
+  border-radius: 2px;
+}
+
+.summarySep {
+  color: #2a2a3a;
+  font-size: 16px;
+}
+
+/* Step content */
+.stepContent {
+  background: #111118;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 28px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stepTitle {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e8d4a8;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.stepSubtitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a4a6a;
+  letter-spacing: 0.04em;
+  margin: -12px 0 0;
+}
+
+/* Card grid for class / ascendancy / weapon */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .cardGrid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+}
+
+.selectionCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 16px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.selectionCard:hover {
+  border-color: #c8963c;
+  background: #1a1500;
+  transform: translateY(-2px);
+}
+
+.selectionCard:hover .cardLabel {
+  color: #e8b84a;
+}
+
+/* Image area with placeholder fallback */
+.cardImage {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #1a1a2a;
+  border: 1px solid #2a2a3a;
+  flex-shrink: 0;
+}
+
+.cardImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.cardPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2a;
+}
+
+/* Hide placeholder when image loads */
+.cardImg + .cardPlaceholder {
+  display: none;
+}
+
+/* Show placeholder when image errors (handled via JS) */
+.placeholderIcon {
+  font-size: 24px;
+  opacity: 0.3;
+}
+
+.cardLabel {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7a7a9a;
+  transition: color 0.15s;
+  line-height: 1.3;
+}
+
+/* Skill grid */
+.skillGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .skillGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skillCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 2px;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #7a7a9a;
+  letter-spacing: 0.04em;
+}
+
+.skillCard:hover {
+  border-color: #c8963c55;
+  background: #111108;
+  color: #c8b89a;
+}
+
+.skillCardSelected {
+  border-color: #c8963c !important;
+  background: #1a1500 !important;
+  color: #e8b84a !important;
+}
+
+.skillBullet {
+  color: #c8963c;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+/* Generate button */
+.generateWrapper {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid #1a1a2a;
+}
+
+.generateBtn {
+  width: 100%;
+  background: linear-gradient(135deg, #1a1500, #2a2000);
+  border: 1px solid #c8963c;
+  color: #c8963c;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.generateBtn:hover {
+  background: linear-gradient(135deg, #2a2000, #3a3000);
+  color: #e8b84a;
+}

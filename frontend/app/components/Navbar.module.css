@@ -1,0 +1,80 @@
+.nav {
+  background: #0d0d14;
+  border-bottom: 1px solid #2a2a3a;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #c8963c;
+  letter-spacing: 0.05em;
+  margin-right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.gem {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #c8963c, #8b5e1a);
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  flex-shrink: 0;
+}
+
+.links {
+  display: flex;
+  height: 100%;
+}
+
+.link {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a5a7a;
+  padding: 0 18px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.link:hover { color: #c8b89a; }
+.link.active { color: #c8963c; border-bottom-color: #c8963c; }
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  background: #1a1a2a;
+  border: 1px solid #3a3a4a;
+  color: #5a5a7a;
+  padding: 4px 10px;
+  border-radius: 2px;
+  letter-spacing: 0.1em;
+}
+
+.live {
+  color: #4a9a4a;
+  border-color: #2a5a2a;
+  background: #0a1a0a;
+}
