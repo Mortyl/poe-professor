@@ -45,8 +45,17 @@ def _load_passive_report(ascendancy: str, experience_level: str, skill: str = ""
 
 
 def _is_main_tree_node(node: dict) -> bool:
-    """Exclude ascendancy sub-tree nodes and masteries from pathfinding."""
-    return not node.get("Ascendancy") and node.get("Type", 0) != 4
+    """Exclude ascendancy sub-tree nodes and non-allocatable mastery nodes.
+
+    In the 0_4 tree, Type 4 = Jewel Socket (allocatable, has Connections).
+    In the 0_3 tree, Type 4 = Mastery (non-allocatable, no Connections).
+    We distinguish by whether the node has any Connections rather than by Type.
+    """
+    if node.get("Ascendancy"):
+        return False
+    if node.get("Type") == 4 and not node.get("Connections"):
+        return False  # non-allocatable mastery node
+    return True
 
 
 def _build_adjacency(nodes: dict) -> dict[int, set[int]]:
@@ -497,6 +506,138 @@ def recommend_nodes(
     return result_nodes + asc_nodes
 
 
+def _stitch_nodes(
+    target_ids: list[int],
+    start_id: int,
+    adj: dict[int, set[int]],
+    node_costs: dict[int, float] | None = None,
+) -> tuple[list[int], list[int]]:
+    """
+    Ensure every node in target_ids is reachable from start_id.
+
+    Uses Dijkstra weighted by adoption rate when node_costs is provided:
+    high-adoption nodes (frequently walked by real builds) have low cost and
+    are preferred; rarely-taken nodes have high cost and are avoided.
+    Falls back to unweighted BFS when no cost map is given.
+
+    Returns:
+        reachable_targets  — subset of target_ids that were successfully connected
+        connectors         — travel nodes added to bridge targets to the start
+    """
+    import heapq
+
+    DEFAULT_COST = 50.0   # cost for nodes not in the frequency data at all
+
+    target_set    = set(target_ids)
+    connected     = {start_id}
+    connector_set: set[int] = set()
+    connectors:   list[int] = []
+    reachable:    list[int] = []
+
+    for target in target_ids:
+        if target in connected:
+            reachable.append(target)
+            continue
+
+        # Dijkstra from target outward — stop when we pop a connected node
+        dist:   dict[int, float] = {target: 0.0}
+        parent: dict[int, int]   = {target: -1}
+        heap = [(0.0, target)]
+        found: int | None = None
+
+        while heap:
+            d, cur = heapq.heappop(heap)
+            if d > dist.get(cur, float("inf")):
+                continue          # stale heap entry
+            if cur in connected:
+                found = cur
+                break
+            for nb in adj.get(cur, set()):
+                cost     = node_costs.get(nb, DEFAULT_COST) if node_costs else 1.0
+                new_dist = d + cost
+                if new_dist < dist.get(nb, float("inf")):
+                    dist[nb]   = new_dist
+                    parent[nb] = cur
+                    heapq.heappush(heap, (new_dist, nb))
+
+        if found is None:
+            continue  # node unreachable from tree — skip
+
+        # Trace path: found → ... → target via parent chain, then reverse
+        path: list[int] = []
+        cur = found
+        while cur != -1:
+            path.append(cur)
+            cur = parent.get(cur, -1)
+        path.reverse()  # [target, ..., found]
+
+        # path[0] = target, path[-1] = found (already connected)
+        # path[1:-1] = new connector nodes
+        for node in path[1:-1]:
+            connected.add(node)
+            if node not in target_set and node not in connector_set:
+                connector_set.add(node)
+                connectors.append(node)
+
+        connected.add(target)
+        reachable.append(target)
+
+    return reachable, connectors
+
+
+def _remove_redundant_connectors(
+    all_nodes: list[int],
+    start_id: int,
+    adj: dict[int, set[int]],
+    popular_set: set[int],
+    node_costs: dict[int, float],
+) -> list[int]:
+    """
+    Remove connector nodes that are not strictly necessary for connectivity.
+
+    For each non-popular node (sorted lowest adoption first), check whether
+    all popular nodes remain reachable from start if that node is removed.
+    If yes — it's redundant (there's an alternative path) and gets dropped.
+
+    This resolves competing paths: e.g. if node 328 was added to reach
+    Feathered Fletching, but Feathered Fletching is also reachable via
+    the higher-adoption 34612 path, node 328 gets removed.
+    """
+    from collections import deque
+
+    highlighted = set(all_nodes)
+    highlighted.add(start_id)
+
+    def all_popular_reachable_without(excluded: int) -> bool:
+        reachable: set[int] = set()
+        queue = deque([start_id])
+        reachable.add(start_id)
+        while queue:
+            cur = queue.popleft()
+            for nb in adj.get(cur, set()):
+                if nb in highlighted and nb != excluded and nb not in reachable:
+                    reachable.add(nb)
+                    queue.append(nb)
+        return all(p in reachable for p in popular_set if p in highlighted)
+
+    # Process non-popular connectors in order of lowest adoption first
+    # (highest cost = most likely to be on a weak detour path)
+    candidates = sorted(
+        [n for n in highlighted if n not in popular_set and n != start_id],
+        key=lambda n: node_costs.get(n, 50.0),
+        reverse=True,
+    )
+
+    for n in candidates:
+        if n not in highlighted:
+            continue
+        if all_popular_reachable_without(n):
+            highlighted.discard(n)
+
+    highlighted.discard(start_id)
+    return list(highlighted)
+
+
 def recommend_nodes_branched(
     skill: str,
     ascendancy: str,
@@ -506,29 +647,73 @@ def recommend_nodes_branched(
     top_n: int = 100,
 ) -> dict:
     """
-    Return {"core": list[int], "branches": [], "builds_analysed": int}.
+    Return {"core": list[int], "connectors": list[int], "branches": [], "builds_analysed": int}.
 
-    Takes the top_n most-allocated node IDs from real PoB build data and
-    returns them directly — no scoring, no pathfinding, just raw frequency.
+    Takes the top_n most-allocated node IDs from real PoB data, then stitches
+    them all back to the class start node via BFS, adding the minimum set of
+    intermediate travel nodes ("connectors") so the tree is always fully connected.
     """
     tree = _load_tree()
-    nodes: dict = tree.get("Nodes", {})
+    nodes: dict          = tree.get("Nodes", {})
+    starting_nodes: dict = tree.get("StartingNodes", {})
 
     report = _load_passive_report(ascendancy, experience_level, skill=skill)
     if not report or report.get("builds_analysed", 0) < 10:
         flat = recommend_nodes(skill, ascendancy, class_name, league_type, experience_level)
-        return {"core": flat, "branches": [], "builds_analysed": 0}
+        return {"core": flat, "connectors": [], "branches": [], "builds_analysed": 0}
 
-    node_ids: list[int] = []
+    start_id = int(starting_nodes.get(class_name, 0))
+
+    # Collect top_n popular nodes (ordered by adoption rate — most taken first)
+    popular_ids: list[int] = []
     for entry in report.get("top_nodes", []):
-        if len(node_ids) >= top_n:
+        if len(popular_ids) >= top_n:
             break
         nid = entry["id"]
-        if nodes.get(str(nid)):          # exists in current tree
-            node_ids.append(nid)
+        if nodes.get(str(nid)):
+            popular_ids.append(nid)
+
+    if not popular_ids or not start_id:
+        return {
+            "core": popular_ids,
+            "connectors": [],
+            "branches": [],
+            "builds_analysed": report.get("builds_analysed", 0),
+        }
+
+    # Build node cost map: high adoption = low cost (preferred path).
+    # Nodes not in the report get a very high cost so the algorithm strongly
+    # prefers routing through nodes that real builds actually walked through.
+    node_costs: dict[int, float] = {}
+    for entry in report.get("top_nodes", []):
+        pct = max(entry["pct"], 0.1) / 100.0   # floor at 0.1% to avoid div/0
+        node_costs[entry["id"]] = 1.0 / pct
+
+    # Build main-tree adjacency and stitch all popular nodes back to start
+    adj = _build_adjacency(nodes)
+    connected_targets, connectors = _stitch_nodes(popular_ids, start_id, adj, node_costs)
+
+    # Jewel sockets are high-value allocations — promote them from connector
+    # to core regardless of whether they appeared in the top_n frequency list.
+    promoted:            list[int] = []
+    remaining_connectors: list[int] = []
+    for nid in connectors:
+        node_data = nodes.get(str(nid), {})
+        if node_data.get("Type") in (3, 4) and not node_data.get("Ascendancy"):
+            promoted.append(nid)
+        else:
+            remaining_connectors.append(nid)
+
+    # Redundancy removal: drop any connector node that isn't strictly needed
+    # for connectivity. If a popular node is reachable via two paths, the
+    # lower-adoption path's connectors get removed, keeping only the better route.
+    popular_set = set(popular_ids)
+    all_nodes = connected_targets + promoted + remaining_connectors
+    all_nodes = _remove_redundant_connectors(all_nodes, start_id, adj, popular_set, node_costs)
 
     return {
-        "core": node_ids,
-        "branches": [],
-        "builds_analysed": report.get("builds_analysed", 0),
+        "core":             all_nodes,
+        "connectors":       [],
+        "branches":         [],
+        "builds_analysed":  report.get("builds_analysed", 0),
     }

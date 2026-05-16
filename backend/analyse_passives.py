@@ -140,6 +140,17 @@ def main():
     with open(tree_path, encoding="utf-8") as f:
         tree_nodes = json.load(f)["Nodes"]
 
+    # Build the set of node IDs that are referenced by at least one other node.
+    # Connections are stored one-sidedly in the tree JSON (only one end lists the
+    # edge), so a node with an empty Connections dict is NOT necessarily an orphan —
+    # it may simply be the "target" end of an edge stored on its neighbour.
+    # Using a bidirectional reference set avoids silently dropping valid nodes
+    # (e.g. Acceleration at 76.8% adoption was being zeroed out by the old check).
+    referenced_ids: set[str] = set(tree_nodes.keys())  # every node references itself
+    for n in tree_nodes.values():
+        for conn_id in n.get("Connections", {}).keys():
+            referenced_ids.add(conn_id)
+
     skill_label = f" / skill={args.skill}" if args.skill else ""
     print(f"Loading [{exp}] builds from JSONL files{skill_label}...")
     entries = load_entries(exp, args.skill)
@@ -174,10 +185,9 @@ def main():
         builds_analysed += 1
         for nid in node_ids:
             node = tree_nodes.get(str(nid), {})
-            # Skip nodes with no connections — these are version-mismatch orphans
-            # where the PoB node ID doesn't correspond to the same node in our
-            # tree data.  Connected nodes are reliable; orphans produce garbage.
-            if not node.get("Connections"):
+            # Skip true orphans — nodes that exist in neither direction of any edge.
+            # (Nodes with empty Connections are fine if another node references them.)
+            if str(nid) not in referenced_ids:
                 continue
             if node.get("Ascendancy"):
                 name = node.get("Name", "")
