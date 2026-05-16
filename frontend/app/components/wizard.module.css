@@ -321,6 +321,132 @@
   font-size: 12px;
 }
 
+/* Build options step */
+.optionsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.optionBlock {
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.optionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.optionLabel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a4a6a;
+}
+
+.optionValue {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #c8963c;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sliderEndLabel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #3a3a5a;
+  flex-shrink: 0;
+}
+
+.slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 2px;
+  background: linear-gradient(to right, #2a4a6a, #6a3a00);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #c8963c;
+  border: 2px solid #0d0d14;
+  cursor: pointer;
+}
+
+.toggleRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.toggleBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: #111118;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toggleBtn:hover {
+  border-color: #c8963c55;
+  background: #111108;
+}
+
+.toggleBtnActive {
+  border-color: #c8963c !important;
+  background: #1a1500 !important;
+}
+
+.toggleIcon {
+  font-size: 20px;
+}
+
+.toggleText {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7a7a9a;
+}
+
+.toggleBtnActive .toggleText {
+  color: #e8b84a;
+}
+
+.toggleSub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #3a3a5a;
+  letter-spacing: 0.06em;
+}
+
 /* Generate button */
 .generateWrapper {
   margin-top: 8px;

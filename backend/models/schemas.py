@@ -28,6 +28,8 @@ class BuildRequest(BaseModel):
     ascendancy: str
     weapon_type: str
     class_name: str
+    league_type: str = "sc"              # "sc", "ssf", "hc", "hcssf"
+    experience_level: str = "league_starter"  # "league_starter" or "endgame"
 
 
 class BuildGuide(BaseModel):
@@ -40,3 +42,5 @@ class BuildGuide(BaseModel):
     gear_priorities: List[str]
     playstyle_tips: str
     disclaimer: str
+    recommended_nodes: List[int] = []   # core / mandatory nodes (gold)
+    optional_nodes: List[int] = []      # optional nodes (teal)

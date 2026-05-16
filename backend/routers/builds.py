@@ -38,12 +38,7 @@ async def get_ascendancies():
 async def generate(request: BuildRequest):
     """Generate a build guide for a given skill and ascendancy."""
     try:
-        guide = await generate_build(
-            skill=request.skill,
-            ascendancy=request.ascendancy,
-            weapon_type=request.weapon_type,
-            class_name=request.class_name,
-        )
+        guide = await generate_build(request)
         return guide
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

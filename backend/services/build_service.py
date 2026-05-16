@@ -1,17 +1,88 @@
 import os
+import json
 from dotenv import load_dotenv
 load_dotenv()
-from models.schemas import BuildGuide
+from models.schemas import BuildGuide, BuildRequest
 from services.knowledge_service import build_knowledge_context
+from services.tree_service import recommend_nodes_branched
+
+REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports")
+
+
+def _load_report(skill: str, ascendancy: str, experience_level: str, report_type: str) -> dict | None:
+    """Load a JSON report if it exists. Returns None gracefully if not found."""
+    skill_slug = skill.lower().replace(" ", "_")
+    asc_slug   = ascendancy.lower()
+    exp        = experience_level
+
+    candidates = [
+        # skill-specific report (gem links)
+        os.path.join(REPORT_DIR, f"{skill_slug}_{exp}_{report_type}.json"),
+        # ascendancy-specific report (passives)
+        os.path.join(REPORT_DIR, f"{asc_slug}_{exp}_{report_type}.json"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+    return None
+
+
+def build_real_data_context(skill: str, ascendancy: str, experience_level: str) -> str:
+    """
+    Build a context block from scraped poe.ninja data for injection into the system prompt.
+    Returns an empty string if no reports are available yet.
+    """
+    parts = []
+    exp_label = "league starter (days 1–14)" if experience_level == "league_starter" else "endgame (week 3+)"
+
+    gem_data = _load_report(skill, ascendancy, experience_level, "gem_links")
+    if gem_data and gem_data.get("builds_analysed", 0) >= 10:
+        n = gem_data["builds_analysed"]
+        supports = gem_data.get("top_supports", [])
+        link_sets = gem_data.get("top_link_sets", [])
+
+        lines = [f"GEM LINKS for {skill} ({n} real {exp_label} builds on poe.ninja):"]
+        for s in supports[:8]:
+            lines.append(f"  - {s['name']}: {s['pct']}% of builds")
+        if link_sets:
+            top = link_sets[0]
+            lines.append(f"  Most common link set: {' + '.join(top['gems'])} ({top['pct']}%)")
+        lines.append("Use this data for gem_links. Prioritise supports above 30%.")
+        parts.append("\n".join(lines))
+
+    passive_data = _load_report(skill, ascendancy, experience_level, "passives")
+    if passive_data and passive_data.get("builds_analysed", 0) >= 10:
+        n = passive_data["builds_analysed"]
+        notables = passive_data.get("top_notables", [])
+        asc_nodes = passive_data.get("top_asc_nodes", [])
+
+        lines = [f"PASSIVE TREE for {ascendancy} ({n} real {exp_label} builds on poe.ninja):"]
+        if notables:
+            lines.append("  Most taken notable nodes:")
+            for node in notables[:10]:
+                lines.append(f"    - {node['name']}: {node['pct']}%")
+        if asc_nodes:
+            lines.append("  Ascendancy nodes taken:")
+            for node in asc_nodes[:6]:
+                lines.append(f"    - {node['name']}: {node['pct']}%")
+        lines.append("Use this data to inform passive_tree_notes. Recommend notables above 50%.")
+        parts.append("\n".join(lines))
+
+    if not parts:
+        return ""
+
+    header = f"\nVERIFIED DATA FROM REAL POE.NINJA BUILDS ({exp_label.upper()}):"
+    return header + "\n\n" + "\n\n".join(parts)
 
 USE_MOCK = False
 
 
-async def generate_build(skill: str, ascendancy: str, weapon_type: str = None, class_name: str = None) -> BuildGuide:
+async def generate_build(request: BuildRequest) -> BuildGuide:
     if USE_MOCK:
-        return _get_mock_build(skill, ascendancy, weapon_type, class_name)
+        return _get_mock_build(request.skill, request.ascendancy, request.weapon_type, request.class_name)
     else:
-        return await _get_claude_build(skill, ascendancy, weapon_type, class_name)
+        return await _get_claude_build(request)
 
 
 def _get_mock_build(skill: str, ascendancy: str, weapon_type: str, class_name: str) -> BuildGuide:
@@ -40,10 +111,15 @@ def _get_mock_build(skill: str, ascendancy: str, weapon_type: str, class_name: s
     )
 
 
-async def _get_claude_build(skill: str, ascendancy: str, weapon_type: str, class_name: str) -> BuildGuide:
+async def _get_claude_build(request: BuildRequest) -> BuildGuide:
     import anthropic
     import json
     import re
+
+    skill = request.skill
+    ascendancy = request.ascendancy
+    weapon_type = request.weapon_type
+    class_name = request.class_name
 
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -53,6 +129,25 @@ async def _get_claude_build(skill: str, ascendancy: str, weapon_type: str, class
         weapon_type=weapon_type,
         skill=skill,
     )
+
+    tree_result = recommend_nodes_branched(
+        skill=skill,
+        ascendancy=ascendancy,
+        class_name=class_name,
+        league_type=request.league_type,
+        experience_level=request.experience_level,
+    )
+    nodes = tree_result["core"]
+    optional_nodes = [n for b in tree_result.get("branches", []) for n in b["nodes"]]
+
+    league_labels = {
+        "sc":    "Softcore",
+        "ssf":   "Solo Self-Found",
+        "hc":    "Hardcore",
+        "hcssf": "Hardcore Solo Self-Found",
+    }
+    league_label = league_labels.get(request.league_type, "Softcore")
+    experience_label = "league starter (limited passive points, prioritise survivability)" if request.experience_level == "league_starter" else "endgame (full passive allocation, maximise damage)"
 
     system_prompt = """You are PoEProfessor, an expert Path of Exile 2 build guide creator.
 
@@ -75,16 +170,22 @@ If verified knowledge is provided below, treat it as your primary reference and 
     if knowledge_context:
         system_prompt += f"\n\n{knowledge_context}"
 
+    real_data_context = build_real_data_context(skill, ascendancy, request.experience_level)
+    if real_data_context:
+        system_prompt += f"\n\n{real_data_context}"
+
     prompt = f"""Generate a beginner-friendly build guide for the following Path of Exile 2 build:
 
 Skill: {skill}
 Ascendancy: {ascendancy}
 Weapon: {weapon_type}
 Class: {class_name}
+League: {league_label}
+Experience level: {experience_label}
 
 Return a JSON object with exactly these fields:
 - overview: string, 2-3 sentences overview of the build
-- passive_tree_notes: string, guidance on passive tree priorities using general directions and stat types
+- passive_tree_notes: string, guidance on passive tree priorities using general directions and stat types, tailored to the build focus and experience level above
 - key_skills: list of 5 strings, each a skill name and one-line description e.g. "Lightning Arrow - main damage skill"
 - gem_links: list of 4 strings, each in this exact format: "Skill Name - Support1, Support2, Support3"
 - gear_priorities: list of 6 strings, each describing one gear slot
@@ -93,7 +194,7 @@ Return a JSON object with exactly these fields:
 Return only valid JSON with no markdown, no code fences, no extra explanation."""
 
     message = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=1500,
         system=system_prompt,
         messages=[{"role": "user", "content": prompt}]
@@ -116,5 +217,7 @@ Return only valid JSON with no markdown, no code fences, no extra explanation.""
         skill=skill,
         ascendancy=ascendancy,
         disclaimer="⚠️ This build guide is AI-generated and intended as a rough starting point. Always verify with up-to-date community resources.",
+        recommended_nodes=nodes,
+        optional_nodes=optional_nodes,
         **data
     )

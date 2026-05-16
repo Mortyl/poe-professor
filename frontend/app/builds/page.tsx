@@ -17,6 +17,8 @@ interface BuildGuide {
   gear_priorities: string[];
   playstyle_tips: string;
   disclaimer: string;
+  recommended_nodes: number[];
+  optional_nodes: number[];
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -34,13 +36,18 @@ export default function BuildsPage() {
     ascendancy: string;
     className: string;
     weapon: string;
+    leagueType: "sc" | "ssf" | "hc" | "hcssf";
+    experienceLevel: "league_starter" | "endgame";
   } | null>(null);
+
 
   const handleWizardComplete = async (selections: {
     skill: string;
     ascendancy: string;
     className: string;
     weapon: string;
+    leagueType: "sc" | "ssf" | "hc" | "hcssf";
+    experienceLevel: "league_starter" | "endgame";
   }) => {
     setSelectedMeta(selections);
     setLoading(true);
@@ -54,9 +61,10 @@ export default function BuildsPage() {
         body: JSON.stringify({
           skill: selections.skill,
           ascendancy: selections.ascendancy,
-          playstyle: "balanced",
           weapon_type: selections.weapon,
           class_name: selections.className,
+          league_type: selections.leagueType,
+          experience_level: selections.experienceLevel,
         }),
       });
       if (!res.ok) throw new Error("Failed to generate build");
@@ -214,8 +222,18 @@ export default function BuildsPage() {
                   <div className={styles.section}>
                     <h3 className={styles.sectionTitle}>Passive Tree</h3>
                     <p className={styles.sectionText}>{guide.passive_tree_notes}</p>
-                    <div style={{ marginTop: "12px" }}>
-                      <PassiveTreeCanvas className={selectedMeta?.className} />
+                    {guide.recommended_nodes.length > 0 && (
+                      <div style={{ display: "flex", gap: "16px", marginTop: "10px", marginBottom: "4px", fontSize: "12px" }}>
+                        <span style={{ color: "#e8c84a" }}>&#9679; Mandatory</span>
+                        <span style={{ color: "#4ab8cc" }}>&#9679; Optional</span>
+                      </div>
+                    )}
+                    <div style={{ marginTop: "8px" }}>
+                      <PassiveTreeCanvas
+                        className={selectedMeta?.className}
+                        highlightedNodes={guide.recommended_nodes}
+                        optionalNodes={guide.optional_nodes ?? []}
+                      />
                     </div>
                   </div>
 

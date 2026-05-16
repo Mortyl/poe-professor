@@ -31,6 +31,7 @@ interface RawData {
 }
 
 interface NodeData {
+  id: number;
   x: number;
   y: number;
   ascendancy: string | undefined;
@@ -38,8 +39,8 @@ interface NodeData {
   stats: Record<string, number>;
   type: number;
 }
-interface Line { x1: number; y1: number; x2: number; y2: number; }
-interface Arc  { cx: number; cy: number; r: number; sa: number; ea: number; }
+interface Line { x1: number; y1: number; x2: number; y2: number; n1: number; n2: number; }
+interface Arc  { cx: number; cy: number; r: number; sa: number; ea: number; n1: number; n2: number; }
 interface Bounds { minX: number; minY: number; maxX: number; maxY: number; }
 interface DrawData { nodes: NodeData[]; lines: Line[]; arcs: Arc[]; bounds: Bounds; }
 
@@ -75,6 +76,7 @@ function parseData(data: RawData, className?: string): DrawData {
     // Apply class-specific override if present
     const override = className ? node.Override?.[className] : undefined;
     const nd: NodeData = {
+      id,
       x:          g.X + r * Math.sin(angle),
       y:          g.Y - r * Math.cos(angle),
       ascendancy: node.Ascendancy,
@@ -106,12 +108,12 @@ function parseData(data: RawData, className?: string): DrawData {
       seen.add(key);
 
       if (connOrbit === 0) {
-        lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+        lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, n1: aId, n2: bId });
         continue;
       }
 
       const r = ORBIT_RADII[Math.abs(connOrbit)];
-      if (!r) { lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y }); continue; }
+      if (!r) { lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, n1: aId, n2: bId }); continue; }
 
       const dx   = b.x - a.x;
       const dy   = b.y - a.y;
@@ -128,7 +130,7 @@ function parseData(data: RawData, className?: string): DrawData {
       const span = ea - sa;
       if (span >= Math.PI) { const t = sa; sa = ea; ea = t; }
 
-      arcs.push({ cx, cy, r, sa, ea });
+      arcs.push({ cx, cy, r, sa, ea, n1: aId, n2: bId });
     }
   }
 
@@ -171,13 +173,24 @@ const NODE_STYLE: Record<number, { colour: string; r: number }> = {
   3: { colour: "#40aa60", r: 28 }, // JewelSocket — green
 };
 const MIN_SCREEN_R = 2;
+const OPTIONAL_COLOUR = "#4ab8cc"; // teal-blue for optional nodes (node dots only)
 
-export default function PassiveTreeCanvas({ className }: { className?: string } = {}) {
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const camRef     = useRef({ tx: 0, ty: 0, scale: 1 });
+export default function PassiveTreeCanvas({
+  className,
+  highlightedNodes = [],
+  optionalNodes = [],
+}: {
+  className?: string;
+  highlightedNodes?: number[];
+  optionalNodes?: number[];
+} = {}) {
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const camRef      = useRef({ tx: 0, ty: 0, scale: 1 });
   const minScaleRef = useRef(0.008);
-  const dataRef    = useRef<DrawData | null>(null);
-  const dragRef    = useRef<{ sx: number; sy: number; tx: number; ty: number } | null>(null);
+  const dataRef     = useRef<DrawData | null>(null);
+  const dragRef     = useRef<{ sx: number; sy: number; tx: number; ty: number } | null>(null);
+  const highlightedSet = useRef<Set<number>>(new Set());
+  const optionalSet    = useRef<Set<number>>(new Set());
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
 
   function draw() {
@@ -196,27 +209,91 @@ export default function PassiveTreeCanvas({ className }: { className?: string } 
     ctx.setTransform(scale, 0, 0, scale, tx, ty);
     const inv = 1 / scale;
 
-    // Connections
+    const core     = highlightedSet.current;
+    const optional = optionalSet.current;
+
+    const isCoreEdge     = (n1: number, n2: number) => core.has(n1)     && core.has(n2);
+    const isOptionalEdge = (n1: number, n2: number) => optional.has(n1) && optional.has(n2) && !core.has(n1) && !core.has(n2);
+
+    // 1. Dim edges (neither core nor optional)
     ctx.strokeStyle = "#2a2a4a";
     ctx.lineWidth   = inv;
     ctx.beginPath();
-    for (const l of lines) { ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); }
+    for (const l of lines) {
+      if (isCoreEdge(l.n1, l.n2) || isOptionalEdge(l.n1, l.n2)) continue;
+      ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
+    }
     ctx.stroke();
-
     ctx.beginPath();
     for (const a of arcs) {
+      if (isCoreEdge(a.n1, a.n2) || isOptionalEdge(a.n1, a.n2)) continue;
       ctx.moveTo(a.cx + a.r * Math.cos(a.sa), a.cy + a.r * Math.sin(a.sa));
       ctx.arc(a.cx, a.cy, a.r, a.sa, a.ea, false);
     }
     ctx.stroke();
 
-    // Nodes — filled circles, sized by type, grow with zoom but never smaller than MIN_SCREEN_R
+    // 2. Optional edges — teal
+    ctx.strokeStyle = OPTIONAL_COLOUR;
+    ctx.lineWidth   = inv * 2;
+    ctx.beginPath();
+    for (const l of lines) {
+      if (!isOptionalEdge(l.n1, l.n2)) continue;
+      ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    for (const a of arcs) {
+      if (!isOptionalEdge(a.n1, a.n2)) continue;
+      ctx.moveTo(a.cx + a.r * Math.cos(a.sa), a.cy + a.r * Math.sin(a.sa));
+      ctx.arc(a.cx, a.cy, a.r, a.sa, a.ea, false);
+    }
+    ctx.stroke();
+
+    // 3. Core edges — gold (drawn last so they sit on top)
+    ctx.strokeStyle = "#e8c84a";
+    ctx.lineWidth   = inv * 2;
+    ctx.beginPath();
+    for (const l of lines) {
+      if (!isCoreEdge(l.n1, l.n2)) continue;
+      ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    for (const a of arcs) {
+      if (!isCoreEdge(a.n1, a.n2)) continue;
+      ctx.moveTo(a.cx + a.r * Math.cos(a.sa), a.cy + a.r * Math.sin(a.sa));
+      ctx.arc(a.cx, a.cy, a.r, a.sa, a.ea, false);
+    }
+    ctx.stroke();
+
+    // 4. Nodes
     for (const n of nodes) {
+      const isCore     = core.has(n.id);
+      const isOptional = optional.has(n.id) && !isCore;
+      const isActive   = isCore || isOptional;
+
       const style  = NODE_STYLE[n.type] ?? NODE_STYLE[0];
-      const worldR = Math.max(style.r, MIN_SCREEN_R * inv);
-      ctx.fillStyle   = style.colour;
-      ctx.strokeStyle = style.colour + "99";
-      ctx.lineWidth   = inv;
+      const baseR  = isActive ? style.r * 1.4 : style.r;
+      const worldR = Math.max(baseR, MIN_SCREEN_R * inv);
+
+      const fillColour = isCore ? "#e8c84a" : isOptional ? OPTIONAL_COLOUR : style.colour;
+      const glowColour = isCore ? "#e8c84a" : OPTIONAL_COLOUR;
+
+      if (isActive) {
+        ctx.strokeStyle = glowColour;
+        ctx.lineWidth   = inv * 2.5;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, worldR + inv * 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle   = fillColour;
+        ctx.strokeStyle = "#ffffff44";
+        ctx.lineWidth   = inv;
+      } else {
+        ctx.fillStyle   = style.colour;
+        ctx.strokeStyle = style.colour + "99";
+        ctx.lineWidth   = inv;
+      }
+
       ctx.beginPath();
       ctx.arc(n.x, n.y, worldR, 0, Math.PI * 2);
       ctx.fill();
@@ -239,6 +316,18 @@ export default function PassiveTreeCanvas({ className }: { className?: string } 
     }
     return best;
   }
+
+  useEffect(() => {
+    highlightedSet.current = new Set(highlightedNodes);
+    if (dataRef.current) draw();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightedNodes]);
+
+  useEffect(() => {
+    optionalSet.current = new Set(optionalNodes);
+    if (dataRef.current) draw();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optionalNodes]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

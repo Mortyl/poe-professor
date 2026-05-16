@@ -102,7 +102,7 @@ async def companion_chat(request: ChatRequest):
     messages.append({"role": "user", "content": request.message})
 
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=512,
         system=system_prompt,
         messages=messages,

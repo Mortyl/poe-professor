@@ -9,6 +9,7 @@ export interface AscendancyData {
   id: string;
   name: string;
   image: string; // path to image in /public/images/ascendancies/
+  weapons: string[]; // weapon IDs available for this ascendancy
 }
 
 export interface WeaponData {
@@ -24,8 +25,8 @@ export const CLASSES: ClassData[] = [
     name: "Warrior",
     image: "/images/classes/warrior.png",
     ascendancies: [
-      { id: "titan", name: "Titan", image: "/images/ascendancies/titan.png" },
-      { id: "warbringer", name: "Warbringer", image: "/images/ascendancies/warbringer.png" },
+      { id: "titan",      name: "Titan",      image: "/images/ascendancies/titan.png",      weapons: ["mace", "primal", "quarterstaff"] },
+      { id: "warbringer", name: "Warbringer", image: "/images/ascendancies/warbringer.png", weapons: ["mace", "primal", "quarterstaff"] },
     ],
   },
   {
@@ -33,8 +34,8 @@ export const CLASSES: ClassData[] = [
     name: "Ranger",
     image: "/images/classes/ranger.png",
     ascendancies: [
-      { id: "pathfinder", name: "Pathfinder", image: "/images/ascendancies/pathfinder.png" },
-      { id: "deadeye", name: "Deadeye", image: "/images/ascendancies/deadeye.png" },
+      { id: "pathfinder", name: "Pathfinder", image: "/images/ascendancies/pathfinder.png", weapons: ["bow", "crossbow", "spear"] },
+      { id: "deadeye",    name: "Deadeye",    image: "/images/ascendancies/deadeye.png",    weapons: ["bow", "crossbow", "spear"] },
     ],
   },
   {
@@ -42,9 +43,9 @@ export const CLASSES: ClassData[] = [
     name: "Huntress",
     image: "/images/classes/huntress.png",
     ascendancies: [
-      { id: "amazon", name: "Amazon", image: "/images/ascendancies/amazon.png" },
-      { id: "ritualist", name: "Ritualist", image: "/images/ascendancies/ritualist.png" },
-      { id: "spiritwalker", name: "Spirit Walker", image: "/images/ascendancies/spiritwalker.png" },
+      { id: "amazon",      name: "Amazon",       image: "/images/ascendancies/amazon.png",      weapons: ["bow", "occult", "spear"] },
+      { id: "ritualist",   name: "Ritualist",    image: "/images/ascendancies/ritualist.png",   weapons: ["bow", "occult", "spear"] },
+      { id: "spiritwalker", name: "Spirit Walker", image: "/images/ascendancies/spiritwalker.png", weapons: ["bow", "occult", "spear"] },
     ],
   },
   {
@@ -52,9 +53,9 @@ export const CLASSES: ClassData[] = [
     name: "Witch",
     image: "/images/classes/witch.png",
     ascendancies: [
-      { id: "lich", name: "Lich", image: "/images/ascendancies/lich.png" },
-      { id: "infernalist", name: "Infernalist", image: "/images/ascendancies/infernalist.png" },
-      { id: "bloodmage", name: "Bloodmage", image: "/images/ascendancies/bloodmage.png" },
+      { id: "lich",        name: "Lich",        image: "/images/ascendancies/lich.png",        weapons: ["occult"] },
+      { id: "infernalist", name: "Infernalist", image: "/images/ascendancies/infernalist.png", weapons: ["elemental", "occult"] },
+      { id: "bloodmage",   name: "Bloodmage",   image: "/images/ascendancies/bloodmage.png",   weapons: ["elemental"] },
     ],
   },
   {
@@ -62,9 +63,9 @@ export const CLASSES: ClassData[] = [
     name: "Sorceress",
     image: "/images/classes/sorceress.png",
     ascendancies: [
-      { id: "stormweaver", name: "Stormweaver", image: "/images/ascendancies/stormweaver.png" },
-      { id: "chronomancer", name: "Chronomancer", image: "/images/ascendancies/chronomancer.png" },
-      { id: "discipleofvarashta", name: "Disciple of Varashta", image: "/images/ascendancies/discipleofvarashta.png" },
+      { id: "stormweaver",       name: "Stormweaver",       image: "/images/ascendancies/stormweaver.png",       weapons: ["elemental"] },
+      { id: "chronomancer",      name: "Chronomancer",      image: "/images/ascendancies/chronomancer.png",      weapons: ["elemental"] },
+      { id: "discipleofvarashta", name: "Disciple of Varashta", image: "/images/ascendancies/discipleofvarashta.png", weapons: ["elemental"] },
     ],
   },
   {
@@ -72,9 +73,9 @@ export const CLASSES: ClassData[] = [
     name: "Monk",
     image: "/images/classes/monk.png",
     ascendancies: [
-      { id: "invoker", name: "Invoker", image: "/images/ascendancies/invoker.png" },
-      { id: "acolyteofchayula", name: "Acolyte of Chayula", image: "/images/ascendancies/acolyteofchayula.png" },
-      { id: "martialartist", name: "Martial Artist", image: "/images/ascendancies/martialartist.png" },
+      { id: "invoker",          name: "Invoker",          image: "/images/ascendancies/invoker.png",          weapons: ["quarterstaff", "primal"] },
+      { id: "acolyteofchayula", name: "Acolyte of Chayula", image: "/images/ascendancies/acolyteofchayula.png", weapons: ["quarterstaff", "primal"] },
+      { id: "martialartist",    name: "Martial Artist",   image: "/images/ascendancies/martialartist.png",    weapons: ["quarterstaff", "primal"] },
     ],
   },
   {
@@ -82,9 +83,9 @@ export const CLASSES: ClassData[] = [
     name: "Mercenary",
     image: "/images/classes/mercenary.png",
     ascendancies: [
-      { id: "gemlinglegionaire", name: "Gemling Legionaire", image: "/images/ascendancies/gemlinglegionaire.png" },
-      { id: "witchhunter", name: "Witchhunter", image: "/images/ascendancies/witchhunter.png" },
-      { id: "tactician", name: "Tactician", image: "/images/ascendancies/tactician.png" },
+      { id: "gemlinglegionaire", name: "Gemling Legionaire", image: "/images/ascendancies/gemlinglegionaire.png", weapons: ["crossbow"] },
+      { id: "witchhunter",       name: "Witchhunter",        image: "/images/ascendancies/witchhunter.png",       weapons: ["crossbow"] },
+      { id: "tactician",         name: "Tactician",          image: "/images/ascendancies/tactician.png",         weapons: ["crossbow"] },
     ],
   },
   {
@@ -92,8 +93,8 @@ export const CLASSES: ClassData[] = [
     name: "Druid",
     image: "/images/classes/druid.png",
     ascendancies: [
-      { id: "shaman", name: "Shaman", image: "/images/ascendancies/shaman.png" },
-      { id: "oracle", name: "Oracle", image: "/images/ascendancies/oracle.png" },
+      { id: "shaman", name: "Shaman", image: "/images/ascendancies/shaman.png", weapons: ["primal"] },
+      { id: "oracle", name: "Oracle", image: "/images/ascendancies/oracle.png", weapons: ["primal", "elemental"] },
     ],
   },
 ];
