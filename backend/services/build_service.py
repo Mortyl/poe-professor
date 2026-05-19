@@ -10,14 +10,20 @@ REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports
 
 
 def _load_report(skill: str, ascendancy: str, report_type: str) -> dict | None:
-    """Load a JSON report if it exists. Returns None gracefully if not found."""
+    """Load a JSON report if it exists. Returns None gracefully if not found.
+
+    Filename precedence (most specific → most legacy):
+      1. {skill}_{ascendancy}_league_starter_{type}.json — current per-combo format
+      2. {skill}_league_starter_{type}.json              — legacy skill-only (polluted
+         across ascendancies; here for back-compat until all combos re-analysed)
+      3. {ascendancy}_league_starter_{type}.json         — ancient ascendancy-only fallback
+    """
     skill_slug = skill.lower().replace(" ", "_")
     asc_slug   = ascendancy.lower()
 
     candidates = [
-        # skill-specific report (gem links)
+        os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_league_starter_{report_type}.json"),
         os.path.join(REPORT_DIR, f"{skill_slug}_league_starter_{report_type}.json"),
-        # ascendancy-specific report (passives)
         os.path.join(REPORT_DIR, f"{asc_slug}_league_starter_{report_type}.json"),
     ]
     for path in candidates:

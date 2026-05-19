@@ -346,8 +346,7 @@ def main():
         slug = f"{args.skill.lower().replace(' ', '_')}_{variant_slug}_{args.ascendancy.lower()}_{args.league}"
     else:
         slug = f"{args.skill.lower().replace(' ', '_')}_{args.ascendancy.lower()}_{args.league}"
-    out_path  = os.path.join(POB_DIR, f"{slug}.txt")
-    jsonl_path = out_path.replace(".txt", ".jsonl")
+    jsonl_path = os.path.join(POB_DIR, f"{slug}.jsonl")
 
     # Collect all codes, deduplicating on exact code string.
     # In append mode, seed all_codes from the existing JSONL so we never
@@ -465,12 +464,6 @@ def main():
 
     write_mode = "a" if args.append else "w"
 
-    with open(out_path, write_mode, encoding="utf-8") as f:
-        if ordered_codes:
-            if args.append:
-                f.write("\n")
-            f.write("\n".join(ordered_codes))
-
     with open(jsonl_path, write_mode, encoding="utf-8") as f:
         for entry in ordered_entries:
             f.write(json.dumps({
@@ -484,11 +477,7 @@ def main():
     mode_label = "appended" if args.append else "saved"
     print(f"\n{'='*60}")
     print(f"  DONE — {len(ordered_codes)} new unique PoB codes {mode_label}")
-    print(f"  File : {out_path}")
     print(f"  JSONL: {jsonl_path}")
-    print(f"\nNow run:")
-    print(f"  python analyse_passives.py --ascendancy {args.ascendancy} --experience-level league_starter")
-    print(f"  python analyse_gem_links.py --skill \"{args.skill}\" --experience-level league_starter")
 
 
 if __name__ == "__main__":

@@ -48,3 +48,6 @@ backend/data/SkillTreeCore_old.json
 
 # Scratch poe.ninja exploration scripts
 backend/poe_ninja_*.mjs
+
+# Frontend mockups (local-only design exploration)
+mockups/

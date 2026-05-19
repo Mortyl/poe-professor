@@ -214,16 +214,19 @@ def main():
 
     # ── Write report ─────────────────────────────────────────────────────────
     os.makedirs(REPORT_DIR, exist_ok=True)
+    # Filename includes the ascendancy (and variant) so different ascendancies playing
+    # the same skill don't overwrite each other's report.
+    asc_slug = args.ascendancy.lower()
     if args.item:
         item_slug = args.item.lower().replace(" ", "_").replace("'", "").replace(",", "")
         gems_path = os.path.join(REPORT_DIR, f"{item_slug}_{exp}_gems.json")
     elif args.variant_skill:
         skill_slug        = args.skill.lower().replace(" ", "_")
         variant_slug_part = args.variant_skill.lower().replace(" ", "_")
-        gems_path = os.path.join(REPORT_DIR, f"{skill_slug}_{variant_slug_part}_{exp}_gems.json")
+        gems_path = os.path.join(REPORT_DIR, f"{skill_slug}_{variant_slug_part}_{asc_slug}_{exp}_gems.json")
     else:
         skill_slug = args.skill.lower().replace(" ", "_")
-        gems_path = os.path.join(REPORT_DIR, f"{skill_slug}_{exp}_gems.json")
+        gems_path = os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_{exp}_gems.json")
 
     gems_data = {
         "ascendancy":       "Any" if args.item else args.ascendancy,

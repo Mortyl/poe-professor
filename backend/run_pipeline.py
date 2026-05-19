@@ -201,6 +201,9 @@ def init_db() -> sqlite3.Connection:
         # Migrate: rename old table, create new one, copy data, drop old
         missing = [c for c in ("variant_companion", "mode") if c not in existing_cols]
         print(f"  Migrating combos table to add column(s): {', '.join(missing)}...")
+        # Drop any leftover combos_old from a previously interrupted migration —
+        # without this the ALTER TABLE below fails the second time round.
+        conn.execute("DROP TABLE IF EXISTS combos_old")
         conn.execute("ALTER TABLE combos RENAME TO combos_old")
         conn.execute("""
             CREATE TABLE combos (
@@ -674,9 +677,12 @@ def run_discovery(
         valid.sort(key=lambda x: -x[1])
         print(f"  {len(valid)} damage skills with ≥{min_builds} builds")
 
-        seen_archetypes: dict[tuple, str] = {}          # archetype → first skill name
-        queued_primary_counts: dict[str, int] = {}       # skill → primary count
-        queued_allskills: dict[str, dict[str, int]] = {} # skill → {companion: count}
+        seen_archetypes: dict[tuple, str] = {}             # archetype → first skill name
+        # Track EVERY processed skill (queued OR filtered) so the companion check
+        # can detect "Ice Nova is a companion of Kelari" even when Kelari was itself
+        # filtered (e.g. by primary_ratio or secondary_skills.json) and never queued.
+        all_primary_counts: dict[str, int] = {}
+        all_allskills:      dict[str, dict[str, int]] = {}
 
         for skill, count in valid:
             full_tags    = gem_tags.get(skill, [])
@@ -686,6 +692,10 @@ def run_discovery(
             # Option A: verify this skill is actually used as a primary skill
             time.sleep(random.uniform(*DELAY_API_RANGE))
             primary_count, companions = fetch_primary_data(asc, skill, snapshot, snapshot_name, label, gem_dict_cache)
+
+            # Record EVERY processed skill — needed for companion detection of LATER skills
+            all_primary_counts[skill] = primary_count
+            all_allskills[skill]      = companions
 
             if primary_count < MIN_PRIMARY_BUILDS:
                 print(f"  FILTER {skill} ({count:,} builds) — only {primary_count} primary builds (support skill)")
@@ -698,24 +708,29 @@ def run_discovery(
                 skipped_count += 1
                 continue
 
-            # Companion check — two directions:
-            # A) Does this skill appear in >60% of a queued skill's builds?
-            # B) Does a queued skill appear in >60% of this skill's builds?
-            # Either direction signals a companion relationship.
+            # Companion check — two directions, against ALL previously processed
+            # skills (not just queued ones) so a filtered-but-real skill like Kelari
+            # can still suppress its dependent skills like Ice Nova:
+            #   A) Does this skill appear in >60% of the other skill's primary builds?
+            #      Requires the other skill to have meaningful primary count (≥ MIN_PRIMARY_BUILDS).
+            #   B) Does the other skill appear in >60% of this skill's primary builds?
+            #      Works regardless of the other skill's own primary count.
             companion_of = None
-            for queued_skill, queued_primary in queued_primary_counts.items():
-                if queued_primary == 0:
+            for other_skill, other_primary in all_primary_counts.items():
+                if other_skill == skill:
                     continue
-                # Direction A: this skill in queued skill's allskills
-                overlap_a = queued_allskills.get(queued_skill, {}).get(skill, 0)
-                pct_a     = overlap_a / queued_primary * 100
+                # Direction A: this skill in other skill's allskills
+                pct_a = 0.0
+                if other_primary >= MIN_PRIMARY_BUILDS:
+                    overlap_a = all_allskills.get(other_skill, {}).get(skill, 0)
+                    pct_a     = overlap_a / other_primary * 100
 
-                # Direction B: queued skill in this skill's allskills
-                overlap_b = companions.get(queued_skill, 0)
+                # Direction B: other skill in this skill's allskills
+                overlap_b = companions.get(other_skill, 0)
                 pct_b     = overlap_b / primary_count * 100 if primary_count else 0
 
                 if pct_a >= 60 or pct_b >= 60:
-                    companion_of = f"{queued_skill} (A:{pct_a:.0f}% / B:{pct_b:.0f}%)"
+                    companion_of = f"{other_skill} (A:{pct_a:.0f}% / B:{pct_b:.0f}%)"
                     break
 
             if companion_of:
@@ -731,8 +746,6 @@ def run_discovery(
 
             if archetype:
                 seen_archetypes[archetype] = skill
-            queued_primary_counts[skill] = primary_count
-            queued_allskills[skill]      = companions
 
             print(f"  QUEUE {skill} ({count:,} builds) archetype={arch_display} primary={primary_count}")
             upsert_combo(conn, skill, asc, arch_display, count, mode=mode)
@@ -772,16 +785,23 @@ def run_discovery(
 
 # ── Pipeline execution ──────────────────────────────────────────────────────────
 
+# scrape_poeninja.py paces itself with ~5s/character + ~17s/snapshot to dodge poe.ninja
+# bot detection. At ~7s/char, 1 hour covers ~500 characters total — enough for any
+# single skill on poe.ninja while still bounding a real hang.
+STEP_TIMEOUT_DEFAULT = 600
+STEP_TIMEOUT_POB     = 3600
+
 def run_step(cmd: list[str], label: str) -> tuple[bool, str]:
     """Run one pipeline step as a subprocess. Returns (success, error_msg)."""
     print(f"  [{label}] {' '.join(cmd)}")
+    timeout = STEP_TIMEOUT_POB if label == "pob" else STEP_TIMEOUT_DEFAULT
     try:
         result = subprocess.run(
             cmd,
             cwd=BASE_DIR,
             capture_output=True,
             text=True,
-            timeout=600,
+            timeout=timeout,
         )
         if result.returncode != 0:
             err = (result.stderr or result.stdout or "unknown error").strip()[-500:]
@@ -791,7 +811,7 @@ def run_step(cmd: list[str], label: str) -> tuple[bool, str]:
         print(f"  [{label}] OK")
         return True, ""
     except subprocess.TimeoutExpired:
-        print(f"  [{label}] TIMEOUT after 600s")
+        print(f"  [{label}] TIMEOUT after {timeout}s")
         return False, "timeout"
     except Exception as e:
         print(f"  [{label}] ERROR: {e}")
@@ -921,6 +941,144 @@ def print_status(conn: sqlite3.Connection):
     print(f"\nTotal: {total}  Done: {done}  Pending: {pending}  Failed: {failed}")
 
 
+# ── Audit ───────────────────────────────────────────────────────────────────────
+
+# Newly-released ascendancies don't have early-league PoB import support, so day-2
+# and day-3 are legitimately empty on poe.ninja — NOT a scraper failure. The audit
+# treats these snapshots as "expected empty" rather than flagging them as missing.
+# Update this when GGG releases new ascendancies in future leagues; clear once a
+# subsequent league rolls over and the new ascendancy is no longer a fresh release.
+PARTIAL_LEAGUE_STARTER_SNAPSHOTS: dict[str, set[str]] = {
+    # Druid released with the "fate-of-the-vaal" league start (May 2026)
+    "Oracle": {"day-2", "day-3"},
+    "Shaman": {"day-2", "day-3"},
+}
+
+
+def _slug_for(skill: str, ascendancy: str, variant_companion: str = '', league: str = 'sc') -> str:
+    """Reproduce the slug that scrape_poeninja.py uses for its jsonl filename."""
+    skill_slug = skill.lower().replace(' ', '_')
+    asc_slug   = ascendancy.lower()
+    if variant_companion:
+        var_slug = variant_companion.lower().replace(' ', '_')
+        return f"{skill_slug}_{var_slug}_{asc_slug}_{league}"
+    return f"{skill_slug}_{asc_slug}_{league}"
+
+
+def audit_pipeline(conn: sqlite3.Connection, fix: bool = False, league: str = 'sc'):
+    """
+    Audit pob_codes/ jsonl files against expected snapshots per combo.
+
+    A pob scrape can complete with exit 0 but silently skip snapshots that
+    returned empty character lists (transient poe.ninja blip, rate-limit, etc).
+    This sweep detects combos where the jsonl is missing one or more expected
+    snapshots, and optionally flips them back to 'failed' so --resume refetches.
+
+    Heatmap (passives_done) is NOT reset — it's a separate scraper and its data
+    doesn't depend on pob completeness.
+    """
+    import glob
+    from collections import Counter
+
+    pob_dir = os.path.join(BASE_DIR, "pob_codes")
+    if not os.path.isdir(pob_dir):
+        print(f"No pob_codes/ directory at {pob_dir}")
+        return
+
+    # Build slug → combo row lookup
+    combos_by_slug: dict[str, sqlite3.Row] = {}
+    for r in conn.execute(
+        "SELECT skill, ascendancy, variant_companion, mode, status, builds_count "
+        "FROM combos"
+    ).fetchall():
+        slug = _slug_for(r["skill"], r["ascendancy"], r["variant_companion"], league)
+        combos_by_slug[slug] = r
+
+    ls_expected = set(POB_SNAPSHOTS.split(","))
+    eg_expected = set(POB_SNAPSHOTS_ENDGAME.split(","))
+
+    issues: list[tuple[str, sqlite3.Row, set[str]]] = []
+    audited = 0
+    print(f"\n{'═'*60}")
+    print("  POB JSONL AUDIT")
+    print(f"{'═'*60}")
+    for path in sorted(glob.glob(os.path.join(pob_dir, "*.jsonl"))):
+        if "bak" in path.lower():
+            continue
+        audited += 1
+        slug = os.path.basename(path).replace(".jsonl", "")
+        snaps: Counter = Counter()
+        total = 0
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    total += 1
+                    try:
+                        d = json.loads(line)
+                        snaps[d.get("snapshot", "?")] += 1
+                    except json.JSONDecodeError:
+                        pass
+        except OSError as e:
+            print(f"  {slug}: read error {e}")
+            continue
+
+        combo = combos_by_slug.get(slug)
+        mode    = combo["mode"]    if combo else "league_starter"
+        status  = combo["status"]  if combo else "not-in-db"
+        builds  = combo["builds_count"] if combo else None
+        ascendancy = combo["ascendancy"] if combo else ""
+        expected = ls_expected if mode == "league_starter" else eg_expected
+
+        # Subtract snapshots that are legitimately empty for this ascendancy —
+        # e.g. newly-released ascendancies during their first league.
+        partial_skip: set[str] = set()
+        if mode == "league_starter" and ascendancy in PARTIAL_LEAGUE_STARTER_SNAPSHOTS:
+            partial_skip = PARTIAL_LEAGUE_STARTER_SNAPSHOTS[ascendancy] & expected
+            expected     = expected - partial_skip
+
+        present  = {k for k in snaps if k in expected}
+        missing  = expected - present
+
+        snap_str = " ".join(f"{k}={v}" for k, v in sorted(snaps.items()))
+        flag = ""
+        if missing:
+            flag = f"  MISSING {sorted(missing)}"
+        elif partial_skip:
+            flag = f"  (skipped {sorted(partial_skip)} — new ascendancy)"
+        builds_str = f"{builds:>5,}" if isinstance(builds, int) else "  ?  "
+        print(f"  [{status:9s}] total={total:4d}  builds={builds_str}  {snap_str}{flag}")
+        print(f"             {slug}")
+        if missing and combo:
+            issues.append((slug, combo, missing))
+
+    print(f"\nAudited: {audited} jsonl file(s)")
+    print(f"Combos with missing snapshots: {len(issues)}")
+
+    if not issues:
+        return
+
+    if fix:
+        for slug, combo, missing in issues:
+            conn.execute(
+                "UPDATE combos SET status='failed', pob_done=0, gear_done=0, gems_done=0, "
+                "error_msg=? "
+                "WHERE skill=? AND ascendancy=? AND variant_companion=? AND mode=?",
+                (
+                    f"audit: missing snapshots {sorted(missing)}",
+                    combo["skill"], combo["ascendancy"],
+                    combo["variant_companion"], combo["mode"],
+                ),
+            )
+        conn.commit()
+        print(f"\n✓ Flipped {len(issues)} combo(s) to 'failed'. "
+              f"Run `python run_pipeline.py --resume` to refetch (--append dedupes existing data).")
+    else:
+        print("\nPass --fix to flip these combos to 'failed' so --resume retries them.")
+
+
 # ── Main ────────────────────────────────────────────────────────────────────────
 
 def main():
@@ -931,6 +1089,10 @@ def main():
                         help="Skip discovery, only run pending/failed combos")
     parser.add_argument("--status",     action="store_true",
                         help="Print pipeline status table and exit")
+    parser.add_argument("--audit",      action="store_true",
+                        help="Audit pob_codes/ for combos with missing snapshots and exit")
+    parser.add_argument("--fix",        action="store_true",
+                        help="With --audit: flip combos with missing snapshots to 'failed' so --resume refetches them")
     parser.add_argument("--ascendancy", help="Only process this ascendancy (e.g. Deadeye)")
     parser.add_argument("--league",     default="sc", choices=["sc", "hc", "ssf", "hcssf"])
     parser.add_argument("--min-builds", type=int, default=MIN_BUILDS,
@@ -948,6 +1110,10 @@ def main():
         print_status(conn)
         return
 
+    if args.audit:
+        audit_pipeline(conn, fix=args.fix, league=args.league)
+        return
+
     ascendancies = [args.ascendancy] if args.ascendancy else ASCENDANCIES
 
     # ── Discovery phase ────────────────────────────────────────────────────────
@@ -962,7 +1128,7 @@ def main():
         if mode == "endgame":
             preferred = ["week-3", "week-2", "week-4", "week-5", "week-6"]
         else:
-            preferred = ["day-3", "day-4", "day-2", "day-1"]
+            preferred = ["day-4", "day-3", "day-2", "day-1"]
         label = next((l for l in preferred if l in available_labels), "")
         if not label and available_labels:
             label = available_labels[0]

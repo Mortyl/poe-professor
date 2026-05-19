@@ -417,9 +417,11 @@ def main():
     print(f"\n{report}")
 
     # ── Output files ─────────────────────────────────────────────────────────
+    # Filename includes the ascendancy so two ascendancies playing the same skill
+    # (e.g. Lightning Arrow on Deadeye and Amazon) don't overwrite each other's report.
     skill_slug = args.skill.lower().replace(" ", "_")
     asc_slug   = args.ascendancy.lower()
-    base_slug  = f"{skill_slug}_{exp}_passives"
+    base_slug  = f"{skill_slug}_{asc_slug}_{exp}_passives"
 
     txt_path  = os.path.join(REPORT_DIR, f"{base_slug}.txt")
     json_path = os.path.join(REPORT_DIR, f"{base_slug}.json")

@@ -1,0 +1,20 @@
+# Combos to preview through the pipeline.
+# One per line, format: Skill Name / Ascendancy
+# Lines starting with # are ignored.
+
+# Popular combos (should land in Endgame section)
+Lightning Arrow / Deadeye
+Toxic Growth / Pathfinder
+
+# Druid combos (data thin on day-2/3 because new ascendancy)
+Furious Slam / Shaman
+Pounce / Oracle
+
+# Niche / borderline (should land in Exotic section)
+Pounce / Witchhunter
+Plasma Blast / Blood Mage
+Frostbolt / Disciple of Varashta
+
+# Very niche (might fall below MIN_BUILDS — should be "Not surfaced")
+Shred / Tactician
+Spectre: Bogfelled Commoner / Lich
