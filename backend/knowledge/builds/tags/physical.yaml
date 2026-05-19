@@ -1,0 +1,8 @@
+# Physical tag weights
+# Applied to any skill with the Physical tag
+
+offense:
+  physical_damage_+%:                       { base: 0.0, offense: 0.9, defense: 0.0, boss: 1.0, map: 0.9 }
+  attack_physical_damage_+%:               { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  critical_strike_chance_+%:               { base: 0.0, offense: 0.35, defense: 0.0, boss: 0.55, map: 0.25 }
+  critical_strike_multiplier_+:            { base: 0.0, offense: 0.35, defense: 0.0, boss: 0.6, map: 0.25 }

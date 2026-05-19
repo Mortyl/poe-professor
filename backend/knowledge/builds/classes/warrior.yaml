@@ -1,0 +1,12 @@
+# Warrior class defensive weights
+# Primary defence: Armour. Stun threshold important for survivability.
+
+defense:
+  armour_+%:                                { base: 0.2, offense: 0.0, defense: 0.6, boss: 0.7, map: 0.7 }
+  base_physical_damage_reduction_%:        { base: 0.15, offense: 0.0, defense: 0.5, boss: 0.7, map: 0.6 }
+  stun_threshold_+%:                        { base: 0.15, offense: 0.0, defense: 0.5, boss: 0.7, map: 0.5 }
+  base_fire_damage_resistance_%:            { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  base_cold_damage_resistance_%:            { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  base_lightning_damage_resistance_%:       { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  all_elemental_resistances_%:              { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }
+  all_resistances_%:                        { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }

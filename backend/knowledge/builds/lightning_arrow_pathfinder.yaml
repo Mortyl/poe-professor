@@ -1,0 +1,29 @@
+# Lightning Arrow — Pathfinder
+# Ranger class, Pathfinder ascendancy
+# Primary tags: Attack · Ranged · Projectile · Area · Lightning
+
+# base:    minimum weight regardless of offense/defense slider
+# offense: extra weight added when slider is toward offense (multiplied by ratio)
+# defense: extra weight added when slider is toward defense (multiplied by 1-ratio)
+# boss:    goal multiplier for bossing
+# map:     goal multiplier for mapping
+
+offense:
+  bow_damage_+%:                                              { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  bow_attack_speed_+%:                                        { base: 0.0, offense: 0.9, defense: 0.0, boss: 0.7, map: 1.0 }
+  attack_damage_+%:                                           { base: 0.0, offense: 0.9, defense: 0.0, boss: 1.0, map: 0.9 }
+  elemental_damage_with_attack_skills_+%:                     { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  elemental_damage_+%:                                        { base: 0.0, offense: 0.85, defense: 0.0, boss: 0.9, map: 0.85 }
+  base_projectile_speed_+%:                                   { base: 0.0, offense: 0.3, defense: 0.0, boss: 0.2, map: 0.4 }
+  accuracy_rating_+%:                                         { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.6, map: 0.4 }
+  area_of_effect_+%:                                          { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.1, map: 0.7 }
+  skill_area_of_effect_+%:                                    { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.1, map: 0.7 }
+
+  # Pathfinder benefits significantly from flask effect
+  flask_effect_+%:                                            { base: 0.1, offense: 0.3, defense: 0.2, boss: 0.5, map: 0.4 }
+  flask_duration_+%:                                          { base: 0.1, offense: 0.1, defense: 0.2, boss: 0.3, map: 0.3 }
+
+defense:
+  evasion_rating_+%:                                          { base: 0.2, offense: 0.0, defense: 0.6, boss: 0.7, map: 0.8 }
+  all_elemental_resistances_%:                                { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }
+  all_resistances_%:                                          { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }

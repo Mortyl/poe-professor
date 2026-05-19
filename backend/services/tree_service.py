@@ -1,26 +1,72 @@
 """
-Passive tree node scoring and pathfinding service.
+Passive tree node pathfinding service.
 
-Given a build request (skill, ascendancy, class, options), scores every node
-in the passive tree using build_weights.py and returns a list of recommended
-node IDs via a greedy best-first pathfinder from the class starting node.
+Node recommendations are driven entirely by real poe.ninja adoption data.
+recommend_nodes_branched() is the sole entry point used by build_service.py.
 """
 
 import json
 import os
+import yaml
 from functools import lru_cache
 from collections import defaultdict
 
-from services.build_weights import (
-    CLASS_START_MAP, POINT_CAPS, ASCENDANCY_POINT_CAPS, ASCENDANCY_TREE_MAP,
-    get_weights, load_ascendancy_node_rules,
-)
+DATA_PATH   = os.path.join(os.path.dirname(__file__), "..", "data", "SkillTreeCore.json")
+REPORT_DIR  = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports")
+BUILDS_DIR  = os.path.join(os.path.dirname(__file__), "..", "knowledge", "builds")
 
-DATA_PATH  = os.path.join(os.path.dirname(__file__), "..", "data", "SkillTreeCore.json")
-REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports")
+# PoE2 class name → SkillTreeCore.json StartingNodes key
+CLASS_START_MAP = {
+    "Warrior":   "Marauder",
+    "Ranger":    "Ranger",
+    "Sorceress": "Witch",
+    "Monk":      "Shadow",
+    "Mercenary": "Duelist",
+    "Huntress":  "Templar",
+    "Witch":     "Witch",
+    "Druid":     "Templar",
+}
 
-# Minimum adoption % to target a notable in the weight-based fallback path.
-REAL_DATA_MIN_PCT = 33.0
+# Ascendancy name → SkillTreeCore.json Ascendancy field value
+ASCENDANCY_TREE_MAP = {
+    "Deadeye":             "Ranger1",
+    "Pathfinder":          "Ranger3",
+    "Warbringer":          "Warrior1",
+    "Titan":               "Warrior2",
+    "Stormweaver":         "Sorceress1",
+    "Chronomancer":        "Sorceress2",
+    "Invoker":             "Monk2",
+    "Acolyte of Chayula":  "Monk3",
+    "Witchhunter":         "Mercenary2",
+    "Gemling Legionnaire": "Mercenary3",
+    "Blood Mage":          "Witch2",
+    "Infernalist":         "Witch1",
+    "Lich":                "Witch3",
+    "Amazon":              "Huntress1",
+    "Spirit Walker":       "Huntress3",
+    "Oracle":              "Druid1",
+    "Shaman":              "Druid2",
+}
+
+
+@lru_cache(maxsize=1)
+def _load_ascendancy_node_rules() -> dict:
+    path = os.path.join(BUILDS_DIR, "ascendancy_node_rules.yaml")
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+    result: dict = {}
+    for tree_tag, rules in raw.items():
+        result[tree_tag] = {
+            "free_nodes": set(int(n) for n in (rules.get("free_nodes") or [])),
+            "excluded_nodes": set(int(n) for n in (rules.get("excluded_nodes") or [])),
+            "exclusive_groups": [
+                frozenset(int(n) for n in group)
+                for group in (rules.get("exclusive_groups") or [])
+            ],
+        }
+    return result
 
 
 @lru_cache(maxsize=1)
@@ -30,13 +76,13 @@ def _load_tree() -> dict:
 
 
 
-def _load_passive_report(ascendancy: str, experience_level: str, skill: str = "") -> dict | None:
+def _load_passive_report(ascendancy: str, skill: str = "") -> dict | None:
     """Load passive report — skill-specific first, ascendancy fallback."""
     candidates = []
     if skill:
         skill_slug = skill.lower().replace(" ", "_")
-        candidates.append(os.path.join(REPORT_DIR, f"{skill_slug}_{experience_level}_passives.json"))
-    candidates.append(os.path.join(REPORT_DIR, f"{ascendancy.lower()}_{experience_level}_passives.json"))
+        candidates.append(os.path.join(REPORT_DIR, f"{skill_slug}_league_starter_passives.json"))
+    candidates.append(os.path.join(REPORT_DIR, f"{ascendancy.lower()}_league_starter_passives.json"))
     for path in candidates:
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
@@ -59,8 +105,32 @@ def _is_main_tree_node(node: dict) -> bool:
 
 
 def _build_adjacency(nodes: dict) -> dict[int, set[int]]:
-    """Build bidirectional adjacency map from node Connections (main tree only)."""
-    main_tree_ids = {int(nid) for nid, n in nodes.items() if _is_main_tree_node(n)}
+    """Build bidirectional adjacency map from node Connections (main tree only).
+
+    Connections are stored one-sidedly in the tree JSON — a jewel socket node
+    may have an empty Connections dict even though other nodes point to it.
+    We first collect all IDs that appear as connection targets so those nodes
+    are not falsely excluded as mastery nodes.
+    """
+    # Pass 1: collect every node ID that is the target of any connection edge.
+    referenced_as_target: set[int] = set()
+    for n in nodes.values():
+        for conn_id in (n.get("Connections") or {}):
+            referenced_as_target.add(int(conn_id))
+
+    # Pass 2: main-tree IDs — exclude ascendancy sub-trees and true mastery nodes.
+    # A Type-4 node is a mastery (non-allocatable) only when it has NO connections
+    # of its own AND is not referenced as a target by any other node.
+    main_tree_ids: set[int] = {
+        int(nid) for nid, n in nodes.items()
+        if not n.get("Ascendancy")
+        and not (
+            n.get("Type") == 4
+            and not n.get("Connections")
+            and int(nid) not in referenced_as_target
+        )
+    }
+
     adj: dict[int, set[int]] = defaultdict(set)
     for node_id_str, node in nodes.items():
         node_id = int(node_id_str)
@@ -75,442 +145,16 @@ def _build_adjacency(nodes: dict) -> dict[int, set[int]]:
     return dict(adj)
 
 
-def _score_node(
-    stats: dict,
-    weights: dict,
-    offense_ratio: float,
-) -> float:
-    """Score a single node's stats against build weights.
-    Returns 0.0 if stats is not a dict (e.g. new SkillTreeCore uses list of strings)."""
-    if not isinstance(stats, dict):
-        return 0.0
-    score = 0.0
-    defense_ratio = 1.0 - offense_ratio
-    for stat_key, value in stats.items():
-        if stat_key not in weights:
-            continue
-        w = weights[stat_key]
-        goal_mult = (w["boss"] + w["map"]) / 2.0
-        stat_score = value * (w.get("base", 0.0) + w["offense"] * offense_ratio + w["defense"] * defense_ratio) * goal_mult
-        score += stat_score
-    return score
-
-
-def _score_node_offense_only(stats: dict, weights: dict) -> float:
-    """Score using only the offense component — base and defense weights are ignored.
-    Purely defensive nodes (evasion, life, resistances) score exactly 0.
-    Returns 0.0 if stats is not a dict (new SkillTreeCore uses list of strings)."""
-    if not isinstance(stats, dict):
-        return 0.0
-    score = 0.0
-    for stat_key, value in stats.items():
-        if stat_key not in weights:
-            continue
-        w = weights[stat_key]
-        goal_mult = (w["boss"] + w["map"]) / 2.0
-        score += value * w["offense"] * goal_mult
-    return score
-
-
-def _bfs_paths(start: int, adj: dict[int, set[int]]) -> dict[int, list[int]]:
-    """
-    BFS from start node. Returns shortest path (as list of node IDs) to every
-    reachable node. Path includes start and destination.
-    """
-    from collections import deque
-    visited = {start: [start]}
-    queue = deque([start])
-    while queue:
-        current = queue.popleft()
-        for neighbour in adj.get(current, set()):
-            if neighbour not in visited:
-                visited[neighbour] = visited[current] + [neighbour]
-                queue.append(neighbour)
-    return visited
-
-
-def _recommend_ascendancy_nodes(
-    ascendancy: str,
-    nodes: dict,
-    class_start_id: int,
-    weights: dict,
-    offense_defense_ratio: float,
-    point_cap: int,
-) -> list[int]:
-    """
-    Allocate ascendancy points within the player's ascendancy sub-tree.
-
-    Respects ascendancy_node_rules.yaml:
-    - free_nodes: zero-cost junction nodes (included in path but don't consume a point)
-    - exclusive_groups: when one node in a group is allocated, all others are blocked
-    """
-    # tree_tag is only used for ascendancy_node_rules.yaml lookups (which still use
-    # the old "Ranger1" style keys). Node filtering uses the ascendancy name directly
-    # because the 0_4 tree stores the full name ("Deadeye") in the Ascendancy field.
-    tree_tag = ASCENDANCY_TREE_MAP.get(ascendancy)
-
-    # Load special-case rules for this ascendancy
-    all_rules = load_ascendancy_node_rules()
-    rules = all_rules.get(tree_tag or "", {})
-    free_nodes: set[int] = rules.get("free_nodes", set())
-    exclusive_groups: list[frozenset[int]] = rules.get("exclusive_groups", [])
-
-    # Collect all nodes belonging to this ascendancy sub-tree.
-    # The 0_4 tree uses the full ascendancy name ("Deadeye", "Pathfinder", etc.)
-    # directly in the Ascendancy field — not the old "Ranger1" style tags.
-    asc_nodes = {
-        int(nid): n
-        for nid, n in nodes.items()
-        if n.get("Ascendancy") == ascendancy and n.get("Type", 0) != 4
-    }
-    if not asc_nodes:
-        return []
-
-    # Build adjacency within the ascendancy sub-tree
-    asc_ids = set(asc_nodes)
-    adj: dict[int, set[int]] = defaultdict(set)
-    for node_id, node in asc_nodes.items():
-        for neighbour_str in (node.get("Connections") or {}):
-            neighbour = int(neighbour_str)
-            if neighbour in asc_ids:
-                adj[node_id].add(neighbour)
-                adj[neighbour].add(node_id)
-
-    # Find the entry node: the ascendancy node connected to the class start
-    main_adj_of_start = set()
-    for nid, node in nodes.items():
-        if int(nid) == class_start_id:
-            for neighbour_str in (node.get("Connections") or {}):
-                main_adj_of_start.add(int(neighbour_str))
-
-    entry_candidates = asc_ids & main_adj_of_start
-    entry_node = next(iter(entry_candidates)) if entry_candidates else next(iter(asc_ids))
-
-    # Score ascendancy nodes (free_nodes score 0 since they cost nothing)
-    node_scores: dict[int, float] = {}
-    for node_id, node in asc_nodes.items():
-        if node_id in free_nodes:
-            continue
-        stats = node.get("Stats") or {}
-        if not stats:
-            continue
-        score = _score_node(stats, weights, offense_defense_ratio)
-        if score > 0:
-            node_scores[node_id] = score
-
-    if not node_scores:
-        return []
-
-    # BFS from entry node within the ascendancy sub-tree
-    from collections import deque
-    visited: dict[int, list[int]] = {entry_node: [entry_node]}
-    queue: deque = deque([entry_node])
-    while queue:
-        current = queue.popleft()
-        for neighbour in adj.get(current, set()):
-            if neighbour not in visited:
-                visited[neighbour] = visited[current] + [neighbour]
-                queue.append(neighbour)
-
-    def _point_cost(path: list[int], allocated: set[int]) -> int:
-        """Count unallocated non-free nodes in path."""
-        return sum(1 for n in path if n not in allocated and n not in free_nodes)
-
-    # Blocked nodes: nodes excluded by exclusive group choices already made
-    blocked: set[int] = set()
-
-    # Greedy allocation within ascendancy budget
-    # entry_node is always free (like the class start on the main tree)
-    allocated: set[int] = {entry_node}
-    result: list[int] = [entry_node]
-    remaining = point_cap
-
-    candidates = list(node_scores.keys())
-
-    while remaining > 0 and candidates:
-        scored: list[tuple[float, int, list[int]]] = []
-        for node_id in candidates:
-            if node_id in allocated or node_id in blocked:
-                continue
-            path = visited.get(node_id)
-            if path is None:
-                continue
-            cost = _point_cost(path, allocated)
-            if cost == 0 or cost > remaining:
-                continue
-            vpp = node_scores[node_id] / cost
-            scored.append((vpp, node_id, path))
-
-        if not scored:
-            break
-
-        scored.sort(key=lambda x: x[0], reverse=True)
-        _, best_node, best_path = scored[0]
-
-        cost = _point_cost(best_path, allocated)
-        if cost > remaining:
-            break
-
-        new_nodes = [n for n in best_path if n not in allocated]
-        for n in new_nodes:
-            allocated.add(n)
-            result.append(n)
-        remaining -= cost  # only count non-free nodes
-
-        # Block the other options in any exclusive group that best_node belongs to
-        for group in exclusive_groups:
-            if best_node in group:
-                blocked |= group - {best_node}
-
-        candidates = [n for n in candidates if n not in allocated and n not in blocked]
-
-    return result
-
-
-def _is_grenade_only(node: dict) -> bool:
-    """True when every stat on the node is grenade-specific — can't benefit a bow build."""
-    stats = node.get("Stats") or {}
-    return bool(stats) and all("grenade" in key.lower() for key in stats)
-
-
-
-LEAGUE_OFFENSE_RATIO: dict[str, float] = {
-    "sc":     0.65,   # softcore — players push DPS, death is cheap
-    "ssf":    0.55,   # solo self-found — can't buy defensive gear, more balanced
-    "hc":     0.45,   # hardcore — permadeath, defence matters
-    "hcssf":  0.35,   # HC SSF — most constrained, tankiest builds
-}
-
-
-def recommend_nodes(
-    skill: str,
-    ascendancy: str,
-    class_name: str,
-    league_type: str = "sc",
-    experience_level: str = "league_starter",
-) -> list[int]:
-    """
-    Return a list of recommended passive node IDs for the given build.
-    Returns empty list if no weights are registered for this skill/ascendancy.
-    """
-    offense_defense_ratio = LEAGUE_OFFENSE_RATIO.get(league_type, 0.6)
-
-    tree = _load_tree()
-    nodes: dict = tree.get("Nodes", {})
-    starting_nodes: dict = tree.get("StartingNodes", {})
-
-    poe1_class = CLASS_START_MAP.get(class_name)
-    if not poe1_class or poe1_class not in starting_nodes:
-        return []
-
-    start_id = int(starting_nodes[poe1_class])
-
-    # ── Real-data path ────────────────────────────────────────────────────────
-    if USE_REAL_DATA:
-        report = _load_passive_report(ascendancy, experience_level, skill=skill)
-        if report and report.get("builds_analysed", 0) >= 10:
-            weights = get_weights(skill, ascendancy, class_name)
-            if weights:
-                # Offense-only scoring: base and defense weights are ignored so
-                # evasion/resistance nodes score exactly 0 and are never targeted.
-                node_scores: dict[int, float] = {}
-                for node_id_str, node in nodes.items():
-                    node_id = int(node_id_str)
-                    if not _is_main_tree_node(node):
-                        continue
-                    stats = node.get("Stats") or {}
-                    if not stats:
-                        continue
-                    score = _score_node_offense_only(stats, weights)
-                    if score > 0:
-                        node_scores[node_id] = score
-
-                if node_scores:
-                    from collections import deque as _deque
-
-                    adj = _build_adjacency(nodes)
-                    paths_from_start = _bfs_paths(start_id, adj)
-                    point_cap = POINT_CAPS.get(experience_level, 45)
-
-                    # Filter to notables actually taken by real builds at >= REAL_DATA_MIN_PCT.
-                    # Cross-reference with offense-only scoring so only damage-relevant
-                    # nodes that real players take are targeted.
-                    high_pct_names: set[str] = {
-                        n["name"] for n in report.get("top_notables", [])
-                        if n["pct"] >= REAL_DATA_MIN_PCT
-                    }
-
-                    notable_ids = sorted(
-                        [nid for nid, score in node_scores.items()
-                         if nodes.get(str(nid), {}).get("Type") in (1, 2)
-                         and nid in paths_from_start
-                         and nodes.get(str(nid), {}).get("Name", "") in high_pct_names],
-                        key=lambda nid: node_scores[nid], reverse=True,
-                    )[:20]
-
-                    allocated: set[int] = {start_id}
-                    result_nodes: list[int] = []
-                    remaining = point_cap
-                    current_source = start_id
-
-                    # After the first pick is made, notables within this many
-                    # hops of start get a heavy VPP penalty — forces the path
-                    # to go deep before clustering back near start.
-                    NEAR_START_HOPS = 10
-
-                    while remaining > 0 and notable_ids:
-                        paths_from_source = _bfs_paths(current_source, adj)
-
-                        best_vpp = -1.0
-                        best_target = -1
-                        for nid in notable_ids:
-                            if nid in allocated:
-                                continue
-                            path = paths_from_source.get(nid)
-                            if not path:
-                                continue
-                            unallocated = [n for n in path if n not in allocated]
-                            cost = len(unallocated)
-                            if cost == 0 or cost > remaining:
-                                continue
-                            vpp = node_scores[nid] / cost
-                            # After leaving start, penalise notables that are
-                            # physically close to start — avoids re-clustering.
-                            if current_source != start_id:
-                                hops = len(paths_from_start.get(nid, [])) - 1
-                                if 0 < hops < NEAR_START_HOPS:
-                                    vpp *= 0.1
-                            if vpp > best_vpp:
-                                best_vpp = vpp
-                                best_target = nid
-
-                        if best_target == -1:
-                            break
-
-                        path = paths_from_source[best_target]
-                        new_nodes = [n for n in path if n not in allocated]
-                        if len(new_nodes) > remaining:
-                            notable_ids = [t for t in notable_ids if t != best_target]
-                            continue
-                        for n in new_nodes:
-                            allocated.add(n)
-                            if n != start_id:
-                                result_nodes.append(n)
-                        remaining -= len(new_nodes)
-                        current_source = best_target
-                        notable_ids = [t for t in notable_ids if t != best_target]
-
-
-                    asc_cap = ASCENDANCY_POINT_CAPS.get(experience_level, 6)
-                    asc_nodes: list[int] = _recommend_ascendancy_nodes(
-                        ascendancy=ascendancy,
-                        nodes=nodes,
-                        class_start_id=start_id,
-                        weights=weights,
-                        offense_defense_ratio=offense_defense_ratio,
-                        point_cap=asc_cap,
-                    )
-                    return result_nodes + asc_nodes
-
-    # ── Weight-based fallback ─────────────────────────────────────────────────
-    weights = get_weights(skill, ascendancy, class_name)
-    if not weights:
-        return []
-
-    point_cap = POINT_CAPS.get(experience_level, 45)
-    adj = _build_adjacency(nodes)
-
-    # Score main-tree nodes only (no ascendancy sub-trees, no masteries)
-    node_scores: dict[int, float] = {}
-    for node_id_str, node in nodes.items():
-        node_id = int(node_id_str)
-        if not _is_main_tree_node(node):
-            continue
-        stats = node.get("Stats") or {}
-        if not stats:
-            continue
-        score = _score_node(stats, weights, offense_defense_ratio)
-        if score > 0:
-            node_scores[node_id] = score
-
-    if not node_scores:
-        return []
-
-    # BFS to get shortest paths from start to every node
-    paths_from_start = _bfs_paths(start_id, adj)
-
-    # Compute value-per-point for each reachable scored node
-    # Value-per-point = node_score / path_cost
-    # path_cost = number of nodes in path (including travel nodes that have score 0)
-    candidates: list[tuple[float, int, list[int]]] = []
-    for node_id, score in node_scores.items():
-        path = paths_from_start.get(node_id)
-        if path is None:
-            continue
-        path_cost = len(path)  # includes start node
-        if path_cost == 0:
-            continue
-        vpp = score / path_cost
-        candidates.append((vpp, node_id, path))
-
-    # Greedy allocation: pick best value-per-point, allocate its full path,
-    # recompute remaining budget, repeat
-    allocated: set[int] = {start_id}
-    result_nodes: list[int] = []
-    remaining = point_cap
-
-    while remaining > 0 and candidates:
-        # Recompute vpp with current allocated set (path cost = unallocated nodes in path)
-        scored: list[tuple[float, int, list[int]]] = []
-        for _, node_id, path in candidates:
-            if node_id in allocated:
-                continue
-            unallocated_in_path = [n for n in path if n not in allocated]
-            cost = len(unallocated_in_path)
-            if cost == 0 or cost > remaining:
-                continue
-            score = node_scores[node_id]
-            vpp = score / cost
-            scored.append((vpp, node_id, path))
-
-        if not scored:
-            break
-
-        scored.sort(key=lambda x: x[0], reverse=True)
-        _, best_node, best_path = scored[0]
-
-        new_nodes = [n for n in best_path if n not in allocated]
-        if len(new_nodes) > remaining:
-            break
-
-        for n in new_nodes:
-            allocated.add(n)
-            if n != start_id:
-                result_nodes.append(n)
-        remaining -= len(new_nodes)
-
-        # Remove allocated node from candidates
-        candidates = [(vpp, nid, p) for vpp, nid, p in candidates if nid not in allocated]
-
-    # Ascendancy point allocation (separate pool)
-    asc_cap = ASCENDANCY_POINT_CAPS.get(experience_level, 6)
-    asc_nodes = _recommend_ascendancy_nodes(
-        ascendancy=ascendancy,
-        nodes=nodes,
-        class_start_id=start_id,
-        weights=weights,
-        offense_defense_ratio=offense_defense_ratio,
-        point_cap=asc_cap,
-    )
-
-    return result_nodes + asc_nodes
-
 
 def _stitch_nodes(
     target_ids: list[int],
     start_id: int,
     adj: dict[int, set[int]],
     node_costs: dict[int, float] | None = None,
+    initial_connected: set[int] | None = None,
+    max_connectors: int | None = None,
+    attribute_nodes: set[int] | None = None,
+    max_attribute_connectors: int | None = None,
 ) -> tuple[list[int], list[int]]:
     """
     Ensure every node in target_ids is reachable from start_id.
@@ -519,6 +163,17 @@ def _stitch_nodes(
     high-adoption nodes (frequently walked by real builds) have low cost and
     are preferred; rarely-taken nodes have high cost and are avoided.
     Falls back to unweighted BFS when no cost map is given.
+
+    initial_connected: treat these nodes as already reachable (e.g. the full
+    core set when stitching optional nodes — routes to nearest core node).
+
+    max_connectors: if set, skip any target whose shortest path requires more
+    than this many intermediate travel nodes.
+
+    attribute_nodes / max_attribute_connectors: if both set, skip any target
+    whose path passes through more than max_attribute_connectors pure attribute
+    nodes (e.g. "+5 to any Attribute" filler nodes). Allows real small nodes
+    (damage, speed, etc.) to count toward max_connectors without penalty.
 
     Returns:
         reachable_targets  — subset of target_ids that were successfully connected
@@ -529,7 +184,9 @@ def _stitch_nodes(
     DEFAULT_COST = 50.0   # cost for nodes not in the frequency data at all
 
     target_set    = set(target_ids)
-    connected     = {start_id}
+    connected: set[int] = {start_id}
+    if initial_connected:
+        connected |= initial_connected
     connector_set: set[int] = set()
     connectors:   list[int] = []
     reachable:    list[int] = []
@@ -573,7 +230,17 @@ def _stitch_nodes(
 
         # path[0] = target, path[-1] = found (already connected)
         # path[1:-1] = new connector nodes
-        for node in path[1:-1]:
+        connector_path = path[1:-1]
+
+        if max_connectors is not None and len(connector_path) > max_connectors:
+            continue  # too many connectors total — skip this target
+
+        if (attribute_nodes is not None and max_attribute_connectors is not None):
+            attr_count = sum(1 for n in connector_path if n in attribute_nodes)
+            if attr_count > max_attribute_connectors:
+                continue  # too many pure attribute filler nodes — skip this target
+
+        for node in connector_path:
             connected.add(node)
             if node not in target_set and node not in connector_set:
                 connector_set.add(node)
@@ -591,6 +258,7 @@ def _remove_redundant_connectors(
     adj: dict[int, set[int]],
     popular_set: set[int],
     node_costs: dict[int, float],
+    keep_pct_threshold: float = 35.0,
 ) -> list[int]:
     """
     Remove connector nodes that are not strictly necessary for connectivity.
@@ -599,11 +267,15 @@ def _remove_redundant_connectors(
     all popular nodes remain reachable from start if that node is removed.
     If yes — it's redundant (there's an alternative path) and gets dropped.
 
-    This resolves competing paths: e.g. if node 328 was added to reach
-    Feathered Fletching, but Feathered Fletching is also reachable via
-    the higher-adoption 34612 path, node 328 gets removed.
+    Nodes above keep_pct_threshold adoption are never removed even if technically
+    redundant — a connector at 40% is a path real builds genuinely walk and
+    should stay on the tree regardless of alternative routes.
     """
     from collections import deque
+
+    # Convert costs back to pct for the threshold check (cost = 1/pct)
+    def cost_to_pct(cost: float) -> float:
+        return (1.0 / cost * 100.0) if cost > 0 else 0.0
 
     highlighted = set(all_nodes)
     highlighted.add(start_id)
@@ -621,9 +293,13 @@ def _remove_redundant_connectors(
         return all(p in reachable for p in popular_set if p in highlighted)
 
     # Process non-popular connectors in order of lowest adoption first
-    # (highest cost = most likely to be on a weak detour path)
+    # (highest cost = most likely to be on a weak detour path).
+    # Skip nodes above the keep threshold — they're popular enough to always keep.
     candidates = sorted(
-        [n for n in highlighted if n not in popular_set and n != start_id],
+        [n for n in highlighted
+         if n not in popular_set
+         and n != start_id
+         and cost_to_pct(node_costs.get(n, 50.0)) < keep_pct_threshold],
         key=lambda n: node_costs.get(n, 50.0),
         reverse=True,
     )
@@ -638,40 +314,333 @@ def _remove_redundant_connectors(
     return list(highlighted)
 
 
+def _prune_leaves(
+    all_nodes: list[int],
+    start_id: int,
+    adj: dict[int, set[int]],
+    node_costs: dict[int, float],
+    budget: int,
+    protected: set[int] | None = None,
+) -> list[int]:
+    """
+    Iteratively remove the weakest leaf node (highest cost = lowest adoption)
+    from the highlighted set until total nodes <= budget.
+    A leaf has exactly one highlighted neighbour — removing it disconnects nothing.
+    Start node and any node in `protected` (selected destination notables) are
+    never removed — only connector/travel nodes can be pruned away.
+    """
+    protected = protected or set()
+    highlighted = set(all_nodes)
+    highlighted.add(start_id)
+
+    h_adj: dict[int, set[int]] = {
+        nid: {nb for nb in adj.get(nid, set()) if nb in highlighted}
+        for nid in highlighted
+    }
+
+    while len(highlighted) > budget + 1:  # +1 for start_id
+        leaves = [
+            nid for nid in highlighted
+            if nid != start_id
+            and nid not in protected
+            and len(h_adj.get(nid, set())) <= 1
+        ]
+        if not leaves:
+            break
+        worst = max(leaves, key=lambda n: node_costs.get(n, 50.0))
+        highlighted.discard(worst)
+        for nb in list(h_adj.get(worst, set())):
+            h_adj[nb].discard(worst)
+        h_adj.pop(worst, None)
+
+    highlighted.discard(start_id)
+    return list(highlighted)
+
+
+def _strip_connector_leaves(
+    all_nodes: list[int],
+    start_id: int,
+    adj: dict[int, set[int]],
+    popular_set: set[int],
+) -> list[int]:
+    """
+    Remove any non-popular leaf nodes that are dead ends after pruning.
+
+    When _prune_leaves stops at the budget it may leave connector trails
+    dangling (e.g. travel nodes that only existed to reach a notable that
+    was itself just pruned). This pass iteratively removes any leaf that is
+    not a popular destination, cleaning up those orphaned tails without
+    touching popular nodes or mid-path connectors.
+    """
+    highlighted = set(all_nodes)
+    highlighted.add(start_id)
+    h_adj: dict[int, set[int]] = {
+        nid: {nb for nb in adj.get(nid, set()) if nb in highlighted}
+        for nid in highlighted
+    }
+
+    changed = True
+    while changed:
+        changed = False
+        for nid in list(highlighted):
+            if nid == start_id or nid in popular_set:
+                continue
+            if len(h_adj.get(nid, set())) <= 1:
+                highlighted.discard(nid)
+                for nb in list(h_adj.get(nid, set())):
+                    h_adj[nb].discard(nid)
+                h_adj.pop(nid, None)
+                changed = True
+
+    highlighted.discard(start_id)
+    return list(highlighted)
+
+
+def _asc_propagate_free(allocated: set, adj: dict, free_ids: set) -> set:
+    """Auto-allocate any free ascendancy nodes adjacent to the current allocated set."""
+    result = set(allocated)
+    changed = True
+    while changed:
+        changed = False
+        for fn in free_ids:
+            if fn not in result:
+                for nb in adj.get(fn, set()):
+                    if nb in result:
+                        result.add(fn)
+                        changed = True
+                        break
+    return result
+
+
+def _asc_paid_neighbors(allocated: set, adj: dict, excluded: set, free_ids: set) -> set:
+    """Paid nodes one step from the allocated set (not already allocated, not excluded, not free)."""
+    result = set()
+    for nid in allocated:
+        for nb in adj.get(nid, set()):
+            if nb not in allocated and nb not in excluded and nb not in free_ids:
+                result.add(nb)
+    return result
+
+
+def _recommend_asc_tiers(
+    ascendancy: str,
+    nodes: dict,
+    free_node_ids: set,
+    asc_node_data: list,
+    exclusive_groups: list,
+    excluded_node_ids: set | None = None,
+) -> list:
+    """
+    Returns a flat ordered list of paid ascendancy node IDs in tier order.
+    Each adjacent pair [a, b] represents one spend:
+      - tier1 = gold, tier2 = green, tier3 = blue, tier4 = red
+
+    Endpoints are identified by node type (Notable=1, Keystone=2) rather than
+    by whether they open further paid neighbours — this handles chains like
+    9798→24868→33736→61991 where 24868 is a valid endpoint even though 33736
+    follows it.
+
+    When a notable is directly adjacent to the allocated set (e.g. via a free
+    gateway node), it is selected as a single-node allocation and emitted twice
+    [n, n] to maintain the pair structure the frontend expects.
+
+    Free nodes (entry + YAML free_nodes) are auto-propagated at zero cost and
+    are NOT included in the returned list.
+    """
+    # Build bidirectional adjacency within this ascendancy's sub-tree only.
+    asc_ids = {
+        int(nid) for nid, n in nodes.items()
+        if n.get("Ascendancy") == ascendancy and n.get("Type", 0) != 4
+    }
+    adj: dict = defaultdict(set)
+    for nid_str, n in nodes.items():
+        nid = int(nid_str)
+        if nid not in asc_ids:
+            continue
+        for conn_str in n.get("Connections", {}):
+            conn = int(conn_str)
+            if conn in asc_ids:
+                adj[nid].add(conn)
+                adj[conn].add(nid)
+
+    adoption = {e["id"]: e.get("pct", 0.0) for e in asc_node_data}
+
+    # Seed from the entry node (named after the ascendancy), then propagate free.
+    entry_id = next(
+        (e["id"] for e in asc_node_data if e.get("name", "").lower() == ascendancy.lower()),
+        None,
+    )
+    allocated: set = {entry_id} if entry_id else set()
+    allocated = _asc_propagate_free(allocated, adj, free_node_ids)
+
+    # Exclusive group lookup.
+    node_to_group: dict = {}
+    for gi, group in enumerate(exclusive_groups):
+        for nid in group:
+            node_to_group[nid] = gi
+
+    # Pre-populate excluded with permanently blocked nodes from YAML.
+    excluded: set = set(excluded_node_ids or set())
+
+    tier_nodes: list = []
+
+    for _round in range(4):
+        candidates = _asc_paid_neighbors(allocated, adj, excluded, free_node_ids)
+        # Record which nodes are already adjacent BEFORE trying any n1, so we
+        # can restrict n2 to nodes that are genuinely newly opened by n1 and
+        # not already reachable via the existing allocated set.
+        pre_candidates = set(candidates)
+        best_pair  = None
+        best_score = -1.0
+
+        for n1 in candidates:
+            n1_type = nodes.get(str(n1), {}).get("Type", 0)
+
+            # ── Single-node allocation: notable/keystone ───────────────────
+            # n1 is a notable/keystone directly adjacent to the allocated set
+            # (e.g. reachable via a free gateway node).  Select it alone.
+            if n1_type in {1, 2}:
+                score = adoption.get(n1, 0.0)
+                if score > best_score:
+                    best_score = score
+                    best_pair  = (n1, None)
+                continue   # don't also try n1 as a travel gateway
+
+            # ── Single-node allocation: Type-0 terminal ─────────────────────
+            # Some ascendancy nodes are small (Type 0) but are dead-ends within
+            # the ascendancy sub-tree because their connections lead only back to
+            # already-allocated nodes or outside the ascendancy into the main tree
+            # (e.g. "Path of the Sorceress" / "Path of the Warrior" in Pathfinder).
+            # These have no valid n2 so they must be selected alone.
+            temp_single  = _asc_propagate_free(allocated | {n1}, adj, free_node_ids)
+            new_from_n1  = _asc_paid_neighbors(temp_single, adj, excluded, free_node_ids) - pre_candidates
+            if not new_from_n1:
+                # n1 opens no new nodes — it is a terminal, select as single-node
+                score = adoption.get(n1, 0.0)
+                if score > best_score:
+                    best_score = score
+                    best_pair  = (n1, None)
+                continue   # no valid n2 exists for a terminal node
+
+            # ── Pair allocation: n1 = travel, n2 = notable/keystone ────────
+            temp1 = _asc_propagate_free(allocated | {n1}, adj, free_node_ids)
+            n2_all = _asc_paid_neighbors(temp1, adj, excluded, free_node_ids)
+
+            # n2 must be newly opened by n1 — exclude nodes already adjacent
+            # to the allocated set before n1 was added (avoids cross-path
+            # confusion where a node reachable via a free gateway appears as
+            # a valid n2 for an unrelated travel node).
+            n2_candidates = n2_all - pre_candidates
+
+            # Block exclusive alternatives of n1 from being chosen as n2.
+            n1_gi = node_to_group.get(n1)
+            if n1_gi is not None:
+                n2_candidates -= set(exclusive_groups[n1_gi]) - {n1}
+
+            for n2 in n2_candidates:
+                n2_type = nodes.get(str(n2), {}).get("Type", 0)
+                if n2_type in {1, 2}:
+                    # Notable or keystone — always a valid endpoint regardless
+                    # of further connections (handles chains like 24868→33736→61991).
+                    pass
+                else:
+                    # Type 0 (small/travel): only valid as endpoint if it is
+                    # a terminal node that opens no further paid branches.
+                    # This handles cases like Deadeye's Point Blank / Far Shot
+                    # which are Type 0 but connect only back to the already-free
+                    # Projectile Proximity Specialisation node.
+                    temp2     = _asc_propagate_free(temp1 | {n2}, adj, free_node_ids)
+                    new_nodes = temp2 - temp1
+                    has_new   = any(
+                        nb not in temp2 and nb not in excluded and nb not in free_node_ids
+                        for nid in new_nodes
+                        for nb  in adj.get(nid, set())
+                    )
+                    if has_new:
+                        continue  # n2 opens further branches — not a terminal endpoint
+
+                score = max(adoption.get(n1, 0.0), adoption.get(n2, 0.0))
+                if score > best_score:
+                    best_score = score
+                    best_pair  = (n1, n2)
+
+        # Stop if nothing viable.
+        if best_pair is None:
+            break
+
+        n1, n2 = best_pair
+        if n2 is None:
+            # Single-node: emit the node twice to preserve the [travel, endpoint]
+            # pair structure that the frontend uses for tier colouring.
+            tier_nodes.extend([n1, n1])
+            allocated = _asc_propagate_free(allocated | {n1}, adj, free_node_ids)
+            gi = node_to_group.get(n1)
+            if gi is not None:
+                for alt in exclusive_groups[gi]:
+                    if alt != n1:
+                        excluded.add(alt)
+        else:
+            tier_nodes.extend([n1, n2])
+            allocated = _asc_propagate_free(allocated | {n1, n2}, adj, free_node_ids)
+            for nid in (n1, n2):
+                gi = node_to_group.get(nid)
+                if gi is not None:
+                    for alt in exclusive_groups[gi]:
+                        if alt != nid:
+                            excluded.add(alt)
+
+    return tier_nodes
+
+
 def recommend_nodes_branched(
     skill: str,
     ascendancy: str,
     class_name: str,
     league_type: str = "sc",
-    experience_level: str = "league_starter",
-    top_n: int = 100,
+    top_n: int = 35,
+    optional_n: int = 6,
 ) -> dict:
     """
-    Return {"core": list[int], "connectors": list[int], "branches": [], "builds_analysed": int}.
+    Return {"core": list[int], "optional": list[int], "connectors": list[int], "branches": [], "builds_analysed": int}.
 
-    Takes the top_n most-allocated node IDs from real PoB data, then stitches
-    them all back to the class start node via BFS, adding the minimum set of
-    intermediate travel nodes ("connectors") so the tree is always fully connected.
+    Takes the top_n most-allocated node IDs from real PoB data (rendered gold),
+    then the next optional_n notables (rendered teal), stitching all back to the
+    class start node via Dijkstra weighted by adoption rate.
     """
     tree = _load_tree()
     nodes: dict          = tree.get("Nodes", {})
     starting_nodes: dict = tree.get("StartingNodes", {})
 
-    report = _load_passive_report(ascendancy, experience_level, skill=skill)
+    report = _load_passive_report(ascendancy, skill=skill)
     if not report or report.get("builds_analysed", 0) < 10:
-        flat = recommend_nodes(skill, ascendancy, class_name, league_type, experience_level)
-        return {"core": flat, "connectors": [], "branches": [], "builds_analysed": 0}
+        return {"core": [], "optional": [], "asc_nodes": [], "connectors": [], "branches": [], "builds_analysed": 0}
 
     start_id = int(starting_nodes.get(class_name, 0))
 
-    # Collect top_n popular nodes (ordered by adoption rate — most taken first)
-    popular_ids: list[int] = []
+    # Rule 4: only target Notable (1), Keystone (2), and Jewel Socket (3/4) nodes
+    # as stitching destinations. Type 0 travel/attribute nodes are mandatory
+    # path nodes but never destinations — the algorithm will walk through them
+    # automatically when connecting destinations, so they never become dead-end
+    # leaf branches.
+    DESTINATION_TYPES = {1, 2, 3, 4}
+
+    # Split nodes by pick-rate threshold: >= 30% adoption → gold, < 30% → teal.
+    # top_n / optional_n act as safety caps so neither set grows unbounded.
+    MIN_GOLD_PCT = 30.0
+    popular_ids:  list[int] = []
+    optional_ids: list[int] = []
     for entry in report.get("top_nodes", []):
-        if len(popular_ids) >= top_n:
+        if len(popular_ids) >= top_n and len(optional_ids) >= optional_n:
             break
         nid = entry["id"]
-        if nodes.get(str(nid)):
+        pct = entry.get("pct", 0.0)
+        node_data = nodes.get(str(nid))
+        if not node_data or node_data.get("Type", 0) not in DESTINATION_TYPES:
+            continue
+        if pct >= MIN_GOLD_PCT and len(popular_ids) < top_n:
             popular_ids.append(nid)
+        elif pct < MIN_GOLD_PCT and len(optional_ids) < optional_n:
+            optional_ids.append(nid)
 
     if not popular_ids or not start_id:
         return {
@@ -689,12 +658,30 @@ def recommend_nodes_branched(
         pct = max(entry["pct"], 0.1) / 100.0   # floor at 0.1% to avoid div/0
         node_costs[entry["id"]] = 1.0 / pct
 
-    # Build main-tree adjacency and stitch all popular nodes back to start
+    # Build main-tree adjacency and stitch all popular nodes back to start.
+    # Jewel sockets are stitched separately with a connector cap so a distant
+    # socket doesn't drag in a long chain of travel nodes (same rule as teal pass).
     adj = _build_adjacency(nodes)
-    connected_targets, connectors = _stitch_nodes(popular_ids, start_id, adj, node_costs)
+    JEWEL_TYPES = {3, 4}
+    popular_notables = [nid for nid in popular_ids
+                        if nodes.get(str(nid), {}).get("Type", 0) not in JEWEL_TYPES]
+    popular_jewels   = [nid for nid in popular_ids
+                        if nodes.get(str(nid), {}).get("Type", 0) in JEWEL_TYPES]
 
-    # Jewel sockets are high-value allocations — promote them from connector
-    # to core regardless of whether they appeared in the top_n frequency list.
+    connected_targets, connectors = _stitch_nodes(popular_notables, start_id, adj, node_costs)
+
+    # Stitch jewel sockets from the nearest already-connected node, capped at 5 connectors.
+    jewel_base = set(connected_targets) | set(connectors) | {start_id}
+    jewel_targets, jewel_connectors = _stitch_nodes(
+        popular_jewels, start_id, adj, node_costs,
+        initial_connected=jewel_base,
+        max_connectors=5,
+    )
+    connected_targets = connected_targets + jewel_targets
+    connectors        = connectors + jewel_connectors
+
+    # Jewel sockets that arrived via connectors were already capped above;
+    # promote any remaining jewel sockets found in the connector list.
     promoted:            list[int] = []
     remaining_connectors: list[int] = []
     for nid in connectors:
@@ -711,8 +698,80 @@ def recommend_nodes_branched(
     all_nodes = connected_targets + promoted + remaining_connectors
     all_nodes = _remove_redundant_connectors(all_nodes, start_id, adj, popular_set, node_costs)
 
+    # Prune weak leaf destinations until total allocated nodes <= budget.
+    # With Rule 4 active, leaves are always Notables/Keystones/Jewel Sockets
+    # (never mid-path attribute nodes), so this correctly trims the least-adopted
+    # destinations rather than stranding important nodes.
+    all_nodes = _prune_leaves(all_nodes, start_id, adj, node_costs, budget=150, protected=popular_set)
+    # After pruning, connector tails whose target notable was just pruned are
+    # left as dead ends. Strip them regardless of budget — only popular nodes
+    # (notables/keystones/jewels) are protected from removal here.
+    all_nodes = _strip_connector_leaves(all_nodes, start_id, adj, popular_set)
+
+    # Stitch the optional (teal) notables using the completed core as the
+    # already-connected set so they route to the nearest core node rather
+    # than all the way back to the class start.
+    # Rule: max 5 connectors total, but at most 3 of those may be pure attribute
+    # filler nodes (+5 to any Attribute / +Str/Dex/Int) with LOW adoption.
+    # Attribute nodes that real builds walk through (adoption >= 15%) are treated
+    # as legitimate travel nodes and don't count against the attribute cap.
+    ATTR_FILLER_THRESHOLD = 15.0  # % adoption below which an attribute node is "filler"
+    attribute_node_ids: set[int] = {
+        int(nid) for nid, n in nodes.items()
+        if n.get("Name") == "Attribute" or (
+            isinstance(n.get("Stats"), list)
+            and n.get("Stats")
+            and all(
+                any(kw in s.lower() for kw in ("attribute", "strength", "dexterity", "intelligence"))
+                and not any(kw in s.lower() for kw in ("damage", "speed", "resist", "life", "mana", "evasion", "armour", "critical", "flask"))
+                for s in n["Stats"]
+            )
+        )
+    }
+    # Only penalise low-adoption attribute nodes — high-adoption ones are real
+    # travel nodes that builds genuinely walk and shouldn't inflate the cap.
+    filler_attribute_node_ids: set[int] = {
+        nid for nid in attribute_node_ids
+        if nid not in node_costs or (1.0 / node_costs[nid] * 100.0) < ATTR_FILLER_THRESHOLD
+    }
+    core_set = set(all_nodes) | {start_id}
+    opt_targets, opt_connectors = _stitch_nodes(
+        optional_ids, start_id, adj, node_costs,
+        initial_connected=core_set,
+        max_connectors=5,
+        attribute_nodes=filler_attribute_node_ids,
+        max_attribute_connectors=3,
+    )
+    # Keep only nodes that aren't already in core (avoid double-highlighting).
+    optional_nodes: list[int] = [
+        n for n in (opt_targets + opt_connectors)
+        if n not in core_set
+    ]
+
+    # Ascendancy nodes — path-aware tiered allocation.
+    tree_tag = ASCENDANCY_TREE_MAP.get(ascendancy)
+    asc_rules        = _load_ascendancy_node_rules().get(tree_tag, {}) if tree_tag else {}
+    yaml_free        = set(asc_rules.get("free_nodes", []))
+    yaml_excluded    = set(asc_rules.get("excluded_nodes", []))
+    asc_node_data    = report.get("top_asc_nodes", [])
+    entry_ids        = {e["id"] for e in asc_node_data if e.get("name", "").lower() == ascendancy.lower()}
+    free_node_ids    = yaml_free | entry_ids
+    exclusive_groups: list = asc_rules.get("exclusive_groups", [])
+
+    asc_paid = _recommend_asc_tiers(
+        ascendancy=ascendancy,
+        nodes=nodes,
+        free_node_ids=free_node_ids,
+        asc_node_data=asc_node_data,
+        exclusive_groups=exclusive_groups,
+        excluded_node_ids=yaml_excluded,
+    )  # no min_adoption threshold — pick all 4 tiers regardless of low %
+    asc_free = [e["id"] for e in asc_node_data if e["id"] in free_node_ids]
+
     return {
-        "core":             all_nodes,
+        "core":             all_nodes,              # main tree only — free asc nodes not highlighted
+        "optional":         optional_nodes,
+        "asc_nodes":        asc_paid,               # ordered paid nodes for tiered colouring
         "connectors":       [],
         "branches":         [],
         "builds_analysed":  report.get("builds_analysed", 0),

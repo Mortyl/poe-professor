@@ -1,0 +1,22 @@
+# Skill tag definitions
+# Tags drive which tag weight files are loaded for a build.
+# Keep in sync with the tags listed in knowledge/weapons/*.md
+
+# Bow skills
+Lightning Arrow:       [Attack, Ranged, Projectile, Area, Lightning]
+Rain of Arrows:        [Attack, Ranged, Area, Physical]
+Poisonburst Arrow:     [Attack, Ranged, Projectile, Area, Chaos, DoT, Duration]
+Detonating Arrow:      [Attack, Ranged, Projectile, Fire, Channel, Area]
+Tornado Shot:          [Attack, Ranged, Area, Physical, DoT, Duration]
+Snipe:                 [Attack, Ranged, Projectile, Channel, Cold, Area]
+Ice Shot:              [Attack, Ranged, Projectile, Cold]
+Shockchain Arrow:      [Attack, Ranged, Projectile, Lightning]
+Electrocuting Arrow:   [Attack, Ranged, Projectile, Area, Lightning]
+Spiral Volley:         [Attack, Ranged, Projectile, Area]
+Barrage:               [Attack, Ranged, Projectile]
+Gas Arrow:             [Attack, Ranged, Projectile, Area, Chaos, Duration]
+Vine Arrow:            [Attack, Ranged, Projectile, Area, Duration]
+Stormcaller Arrow:     [Attack, Ranged, Projectile, Lightning, Duration]
+Escape Shot:           [Attack, Ranged, Projectile, Cold]
+Lightning Rod:         [Attack, Ranged, Projectile, Lightning, Area]
+Toxic Growth:          [Attack, Ranged, Area, Chaos, DoT, Duration]

@@ -1,0 +1,57 @@
+# Lightning Arrow — Deadeye
+# Ranger class, Deadeye ascendancy
+# Primary tags: Attack · Ranged · Projectile · Area · Lightning
+
+# base:    minimum weight regardless of offense/defense slider
+# offense: extra weight added when slider is toward offense (multiplied by ratio)
+# defense: extra weight added when slider is toward defense (multiplied by 1-ratio)
+# boss:    goal multiplier for bossing
+# map:     goal multiplier for mapping
+
+offense:
+  # --- Primary damage ---
+  bow_damage_+%:                                              { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  bow_attack_speed_+%:                                        { base: 0.0, offense: 0.9, defense: 0.0, boss: 0.7, map: 1.0 }
+  attack_damage_+%:                                           { base: 0.0, offense: 0.9, defense: 0.0, boss: 1.0, map: 0.9 }
+  elemental_damage_with_attack_skills_+%:                     { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  elemental_damage_+%:                                        { base: 0.0, offense: 0.85, defense: 0.0, boss: 0.9, map: 0.85 }
+  base_projectile_speed_+%:                                   { base: 0.0, offense: 0.3, defense: 0.0, boss: 0.2, map: 0.4 }
+  deadeye_projectile_damage_+%_final_max_as_distance_travelled_increases: { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 0.8 }
+  deadeye_projectile_damage_+%_final_max_as_distance_travelled_decreases: { base: 0.0, offense: 0.6, defense: 0.0, boss: 0.8, map: 0.5 }
+
+  # --- Lightning specific ---
+  attack_minimum_added_lightning_damage:                      { base: 0.0, offense: 0.05, defense: 0.0, boss: 0.05, map: 0.05 }
+  attack_maximum_added_lightning_damage:                      { base: 0.0, offense: 0.05, defense: 0.0, boss: 0.05, map: 0.05 }
+  attack_and_cast_speed_+%_with_lightning_skills:             { base: 0.0, offense: 0.9, defense: 0.0, boss: 0.7, map: 1.0 }
+  chance_for_extra_damage_roll_with_lightning_damage_%:       { base: 0.0, offense: 0.6, defense: 0.0, boss: 0.7, map: 0.5 }
+
+  # --- Accuracy ---
+  accuracy_rating_+%:                                         { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.6, map: 0.4 }
+  bow_accuracy_rating_+%:                                     { base: 0.0, offense: 0.6, defense: 0.0, boss: 0.7, map: 0.5 }
+
+  # --- Crit (lower — not always built) ---
+  critical_strike_chance_+%:                                  { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.6, map: 0.3 }
+  critical_strike_multiplier_+:                               { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.7, map: 0.3 }
+  bow_critical_strike_chance_+%:                              { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.7, map: 0.4 }
+  bow_critical_strike_multiplier_+:                           { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.7, map: 0.4 }
+
+  # --- Area (mapping priority) ---
+  area_of_effect_+%:                                          { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.1, map: 0.7 }
+  skill_area_of_effect_+%:                                    { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.1, map: 0.7 }
+
+defense:
+  # base > 0 means even a full-offense build picks up the best of these nodes
+  # defense adds extra value as the slider moves toward defence
+
+  # --- Evasion (Ranger's primary defence — always somewhat relevant) ---
+  evasion_rating_+%:                                          { base: 0.2, offense: 0.0, defense: 0.6, boss: 0.7, map: 0.8 }
+  base_evasion_rating:                                        { base: 0.1, offense: 0.0, defense: 0.3, boss: 0.3, map: 0.4 }
+  chance_to_evade_+%:                                         { base: 0.2, offense: 0.0, defense: 0.7, boss: 0.9, map: 0.8 }
+
+  # --- Resistances (always needed to hit cap) ---
+  base_fire_damage_resistance_%:                              { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  base_cold_damage_resistance_%:                              { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  base_lightning_damage_resistance_%:                         { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  all_elemental_resistances_%:                                { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }
+  all_resistances_%:                                          { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }
+

@@ -1,0 +1,7 @@
+# Chaos tag weights
+# Applied to any skill with the Chaos tag
+
+offense:
+  chaos_damage_+%:                          { base: 0.0, offense: 0.9, defense: 0.0, boss: 1.0, map: 0.9 }
+  poison_damage_+%:                         { base: 0.0, offense: 0.85, defense: 0.0, boss: 0.9, map: 0.85 }
+  damage_over_time_+%:                      { base: 0.0, offense: 0.8, defense: 0.0, boss: 0.9, map: 0.8 }

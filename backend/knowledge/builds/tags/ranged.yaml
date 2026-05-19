@@ -1,0 +1,9 @@
+# Ranged tag weights
+# Applied to any skill with the Ranged tag (bow and crossbow attacks)
+
+offense:
+  bow_damage_+%:                            { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  bow_attack_speed_+%:                      { base: 0.0, offense: 0.9, defense: 0.0, boss: 0.7, map: 1.0 }
+  bow_accuracy_rating_+%:                   { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.6, map: 0.4 }
+  bow_critical_strike_chance_+%:            { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.6, map: 0.3 }
+  bow_critical_strike_multiplier_+:         { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.6, map: 0.3 }

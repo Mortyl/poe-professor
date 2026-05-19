@@ -1,0 +1,9 @@
+# Fire tag weights
+# Applied to any skill with the Fire tag
+
+offense:
+  elemental_damage_+%:                      { base: 0.0, offense: 0.7, defense: 0.0, boss: 0.8, map: 0.7 }
+  fire_damage_+%:                           { base: 0.0, offense: 0.85, defense: 0.0, boss: 0.9, map: 0.85 }
+  attack_minimum_added_fire_damage:         { base: 0.0, offense: 0.05, defense: 0.0, boss: 0.05, map: 0.05 }
+  attack_maximum_added_fire_damage:         { base: 0.0, offense: 0.05, defense: 0.0, boss: 0.05, map: 0.05 }
+  ignite_damage_+%:                         { base: 0.0, offense: 0.8, defense: 0.0, boss: 0.9, map: 0.7 }

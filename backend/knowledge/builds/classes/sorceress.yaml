@@ -1,0 +1,11 @@
+# Sorceress class defensive weights
+# Primary defence: Energy Shield.
+
+defense:
+  energy_shield_+%:                         { base: 0.2, offense: 0.0, defense: 0.6, boss: 0.7, map: 0.7 }
+  base_energy_shield:                       { base: 0.1, offense: 0.0, defense: 0.4, boss: 0.4, map: 0.4 }
+  base_fire_damage_resistance_%:            { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  base_cold_damage_resistance_%:            { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  base_lightning_damage_resistance_%:       { base: 0.25, offense: 0.0, defense: 0.45, boss: 0.8, map: 0.6 }
+  all_elemental_resistances_%:              { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }
+  all_resistances_%:                        { base: 0.35, offense: 0.0, defense: 0.55, boss: 1.0, map: 0.8 }

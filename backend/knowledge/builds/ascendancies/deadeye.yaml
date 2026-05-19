@@ -1,0 +1,32 @@
+# Deadeye ascendancy weights
+# Stat values in the tree are often low integers (1, 10, 20) for mechanic-based nodes.
+# Weights here are calibrated against actual node stat values to produce correct priority order.
+
+offense:
+  # Tailwind: stat value=1 (trigger), but 10-stack buff is massive — weight compensates
+  gain_tailwind_stack_on_skill_use:                                         { base: 0.0, offense: 30.0, defense: 0.0, boss: 0.7, map: 0.9 }
+  lose_all_tailwind_when_hit:                                               { base: 0.0, offense: 0.0, defense: 0.0, boss: 0.0, map: 0.0 }
+
+  # Endless Munitions: stat value=1 (extra projectile) — doubles AOE coverage, especially strong mapping
+  number_of_additional_projectiles:                                         { base: 0.0, offense: 15.0, defense: 0.0, boss: 1.0, map: 2.0 }
+
+  # Point Blank — 75% of real LA Deadeye builds take this (vs 17.9% Far Shot)
+  deadeye_projectile_damage_+%_final_max_as_distance_travelled_decreases:   { base: 0.0, offense: 1.2, defense: 0.0, boss: 1.0, map: 1.1 }
+
+  # Far Shot — less popular (17.9%), preference for Far Shot builds at range
+  deadeye_projectile_damage_+%_final_max_as_distance_travelled_increases:   { base: 0.0, offense: 0.7, defense: 0.0, boss: 0.9, map: 0.7 }
+
+  # Projectile speed — generic but useful
+  base_projectile_speed_+%:                                                 { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.2, map: 0.5 }
+
+  # Frenzy-related — lower priority than the core nodes above
+  chance_to_gain_1_more_frenzy_charge_%:                                    { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.6, map: 0.5 }
+  base_frenzy_charge_duration_+%:                                           { base: 0.0, offense: 0.15, defense: 0.0, boss: 0.2, map: 0.15 }
+  chance_%_to_double_effect_of_removing_frenzy_charges:                     { base: 0.0, offense: 0.2, defense: 0.0, boss: 0.3, map: 0.2 }
+
+  # Mark-related
+  apply_X_critical_weakness_on_consuming_mark:                              { base: 0.0, offense: 0.4, defense: 0.0, boss: 0.7, map: 0.2 }
+  mark_effect_+%:                                                           { base: 0.0, offense: 0.25, defense: 0.0, boss: 0.5, map: 0.15 }
+
+  # Skill speed — 92.9% prevalence (path node to Gathering Winds, also genuinely valuable)
+  skill_speed_+%:                                                           { base: 0.0, offense: 0.7, defense: 0.0, boss: 0.6, map: 0.9 }

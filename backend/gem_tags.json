@@ -1,0 +1,1866 @@
+{
+  "Ancestral Spirits": [
+    "minion",
+    "trigger",
+    "duration"
+  ],
+  "Apocalypse": [
+    "buff",
+    "spell",
+    "aoe",
+    "trigger",
+    "lightning",
+    "cold",
+    "fire",
+    "duration",
+    "conditional",
+    "storm",
+    "bow"
+  ],
+  "Arc": [
+    "spell",
+    "projectile",
+    "lightning",
+    "chaining",
+    "quarterstaff"
+  ],
+  "Arctic Armour": [
+    "buff",
+    "spell",
+    "persistent",
+    "sustained",
+    "cold",
+    "staged"
+  ],
+  "Arctic Howl": [
+    "warcry",
+    "shapeshift",
+    "buff",
+    "werewolf",
+    "aoe",
+    "cold",
+    "duration",
+    "nova"
+  ],
+  "Armour Piercing Rounds": [
+    "attack",
+    "ammunition",
+    "projectile",
+    "physical",
+    "crossbow"
+  ],
+  "Artillery Ballista": [
+    "attack",
+    "totem",
+    "aoe",
+    "projectile",
+    "sustained",
+    "duration",
+    "crossbow"
+  ],
+  "Ball Lightning": [
+    "spell",
+    "aoe",
+    "projectile",
+    "sustained",
+    "lightning",
+    "duration",
+    "chaining"
+  ],
+  "Barkskin": [
+    "buff",
+    "persistent",
+    "duration"
+  ],
+  "Barrage": [
+    "spell",
+    "buff",
+    "duration"
+  ],
+  "Blasphemy": [
+    "buff",
+    "persistent",
+    "aoe",
+    "aura",
+    "meta"
+  ],
+  "Blood Boil": [
+    "buff",
+    "persistent",
+    "aoe",
+    "physical",
+    "duration"
+  ],
+  "Blood Hunt": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "physical",
+    "payoff",
+    "spear"
+  ],
+  "Bloodhound's Mark": [
+    "mark",
+    "attack",
+    "aoe",
+    "trigger",
+    "physical",
+    "duration",
+    "payoff",
+    "spear"
+  ],
+  "Bone Cage": [
+    "spell",
+    "aoe",
+    "physical",
+    "duration",
+    "nova"
+  ],
+  "Boneshatter": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike"
+  ],
+  "Bonestorm": [
+    "spell",
+    "aoe",
+    "projectile",
+    "sustained",
+    "physical",
+    "channelling"
+  ],
+  "Bow Shot": [
+    "attack",
+    "projectile",
+    "barrageable"
+  ],
+  "Called Shots": [
+    "buff",
+    "persistent",
+    "aoe",
+    "meta"
+  ],
+  "Chaos Bolt": [
+    "spell",
+    "projectile",
+    "chaos"
+  ],
+  "Charged Staff": [
+    "spell",
+    "attack",
+    "buff",
+    "aoe",
+    "lightning",
+    "duration",
+    "conditional"
+  ],
+  "Cluster Grenade": [
+    "attack",
+    "aoe",
+    "projectile",
+    "grenade",
+    "fire"
+  ],
+  "Combat Frenzy": [
+    "buff",
+    "persistent"
+  ],
+  "Comet": [
+    "spell",
+    "aoe",
+    "cold"
+  ],
+  "Consecrate": [
+    "spell",
+    "aoe",
+    "duration",
+    "nova"
+  ],
+  "Contagion": [
+    "spell",
+    "aoe",
+    "chaos",
+    "duration"
+  ],
+  "Convalescence": [
+    "spell",
+    "buff",
+    "persistent",
+    "duration"
+  ],
+  "Crackling Palm": [
+    "buff",
+    "attack",
+    "persistent",
+    "aoe",
+    "lightning"
+  ],
+  "Cross Slash": [
+    "attack",
+    "shapeshift",
+    "werewolf",
+    "aoe",
+    "melee"
+  ],
+  "Crossbow Shot": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile"
+  ],
+  "Cull The Weak": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike"
+  ],
+  "Dark Effigy": [
+    "spell",
+    "totem",
+    "aoe",
+    "projectile",
+    "chaos",
+    "duration"
+  ],
+  "Defiance Banner": [
+    "banner",
+    "buff",
+    "persistent",
+    "aoe",
+    "aura",
+    "duration",
+    "conditional"
+  ],
+  "Demon Form": [
+    "shapeshift",
+    "buff"
+  ],
+  "Despair": [
+    "spell",
+    "aoe",
+    "chaos",
+    "duration",
+    "curse"
+  ],
+  "Detonate Dead": [
+    "spell",
+    "aoe",
+    "physical",
+    "fire",
+    "detonator"
+  ],
+  "Devour": [
+    "attack",
+    "shapeshift",
+    "wyvern",
+    "aoe",
+    "melee",
+    "slam"
+  ],
+  "Disengage": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "travel",
+    "spear"
+  ],
+  "Dread Banner": [
+    "banner",
+    "buff",
+    "persistent",
+    "aoe",
+    "aura",
+    "duration",
+    "conditional",
+    "mace"
+  ],
+  "Earthquake": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "duration"
+  ],
+  "Earthshatter": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "duration",
+    "mace"
+  ],
+  "Elemental Expression": [
+    "spell",
+    "aoe",
+    "projectile",
+    "trigger",
+    "lightning",
+    "cold",
+    "fire",
+    "chaining"
+  ],
+  "Elemental Storm": [
+    "spell",
+    "aoe",
+    "trigger",
+    "lightning",
+    "cold",
+    "fire",
+    "duration",
+    "orb"
+  ],
+  "Elemental Surge": [
+    "attack",
+    "aoe",
+    "trigger",
+    "lightning",
+    "cold",
+    "fire"
+  ],
+  "Elemental Weakness": [
+    "spell",
+    "aoe",
+    "lightning",
+    "cold",
+    "fire",
+    "duration",
+    "curse"
+  ],
+  "Ember Fusillade": [
+    "spell",
+    "aoe",
+    "projectile",
+    "fire",
+    "duration"
+  ],
+  "Emergency Reload": [
+    "buff",
+    "duration",
+    "crossbow"
+  ],
+  "Enfeeble": [
+    "spell",
+    "aoe",
+    "duration",
+    "curse"
+  ],
+  "Entangle": [
+    "spell",
+    "aoe",
+    "sustained",
+    "physical",
+    "duration",
+    "plant",
+    "crossbow"
+  ],
+  "Escape Shot": [
+    "attack",
+    "aoe",
+    "projectile",
+    "trigger",
+    "cold",
+    "bow"
+  ],
+  "Essence Drain": [
+    "spell",
+    "projectile",
+    "chaos",
+    "duration"
+  ],
+  "Eternal Rage": [
+    "buff",
+    "persistent"
+  ],
+  "Explosive Grenade": [
+    "attack",
+    "aoe",
+    "projectile",
+    "grenade",
+    "fire",
+    "detonator"
+  ],
+  "Explosive Shot": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "fire",
+    "detonator",
+    "crossbow"
+  ],
+  "Explosive Spear": [
+    "attack",
+    "aoe",
+    "projectile",
+    "fire",
+    "duration",
+    "detonator",
+    "barrageable"
+  ],
+  "Eye of Winter": [
+    "spell",
+    "projectile",
+    "cold"
+  ],
+  "Falling Thunder": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "projectile",
+    "lightning"
+  ],
+  "Ferocious Roar": [
+    "warcry",
+    "shapeshift",
+    "bear",
+    "aoe",
+    "nova",
+    "meta"
+  ],
+  "Fireball": [
+    "spell",
+    "aoe",
+    "projectile",
+    "fire",
+    "bow"
+  ],
+  "Firestorm": [
+    "spell",
+    "aoe",
+    "sustained",
+    "fire",
+    "duration",
+    "storm"
+  ],
+  "Flame Breath": [
+    "attack",
+    "shapeshift",
+    "wyvern",
+    "aoe",
+    "sustained",
+    "fire",
+    "duration",
+    "channelling",
+    "detonator"
+  ],
+  "Flame Wall": [
+    "spell",
+    "aoe",
+    "fire",
+    "duration"
+  ],
+  "Flameblast": [
+    "spell",
+    "aoe",
+    "fire",
+    "channelling",
+    "nova",
+    "staged"
+  ],
+  "Flash Grenade": [
+    "attack",
+    "aoe",
+    "projectile",
+    "grenade",
+    "crossbow"
+  ],
+  "Flicker Strike": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike"
+  ],
+  "Forge Hammer": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "sustained",
+    "fire",
+    "duration",
+    "mace"
+  ],
+  "Fortifying Cry": [
+    "warcry",
+    "attack",
+    "aoe",
+    "melee",
+    "trigger",
+    "physical",
+    "duration",
+    "nova"
+  ],
+  "Fragmentation Rounds": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "payoff",
+    "merging",
+    "crossbow"
+  ],
+  "Freezing Mark": [
+    "mark",
+    "buff",
+    "cold",
+    "duration",
+    "quarterstaff"
+  ],
+  "Freezing Salvo": [
+    "attack",
+    "aoe",
+    "projectile",
+    "cold",
+    "bow"
+  ],
+  "Frost Bomb": [
+    "spell",
+    "aoe",
+    "cold",
+    "duration",
+    "orb",
+    "remnant"
+  ],
+  "Frost Darts": [
+    "spell",
+    "aoe",
+    "projectile",
+    "cold",
+    "payoff"
+  ],
+  "Frost Wall": [
+    "spell",
+    "aoe",
+    "cold",
+    "duration"
+  ],
+  "Frostbolt": [
+    "spell",
+    "aoe",
+    "projectile",
+    "cold"
+  ],
+  "Frozen Locus": [
+    "attack",
+    "aoe",
+    "melee",
+    "cold",
+    "duration"
+  ],
+  "Furious Slam": [
+    "attack",
+    "shapeshift",
+    "bear",
+    "aoe",
+    "melee",
+    "slam"
+  ],
+  "Fury of the Mountain": [
+    "attack",
+    "shapeshift",
+    "bear",
+    "aoe",
+    "melee",
+    "slam",
+    "sustained",
+    "duration",
+    "channelling"
+  ],
+  "Galvanic Shards": [
+    "attack",
+    "ammunition",
+    "projectile",
+    "lightning",
+    "chaining",
+    "merging",
+    "crossbow"
+  ],
+  "Gas Arrow": [
+    "attack",
+    "aoe",
+    "projectile",
+    "fire",
+    "chaos",
+    "duration",
+    "barrageable",
+    "bow"
+  ],
+  "Gas Grenade": [
+    "attack",
+    "aoe",
+    "projectile",
+    "grenade",
+    "fire",
+    "chaos",
+    "duration",
+    "crossbow"
+  ],
+  "Gathering Storm": [
+    "attack",
+    "aoe",
+    "melee",
+    "lightning",
+    "duration",
+    "channelling",
+    "travel"
+  ],
+  "Ghost Dance": [
+    "buff",
+    "persistent",
+    "duration",
+    "quarterstaff"
+  ],
+  "Glacial Bolt": [
+    "spell",
+    "projectile",
+    "cold",
+    "crossbow"
+  ],
+  "Glacial Lance": [
+    "attack",
+    "aoe",
+    "projectile",
+    "cold",
+    "duration",
+    "barrageable",
+    "spear"
+  ],
+  "Hailstorm Rounds": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "sustained",
+    "cold",
+    "crossbow"
+  ],
+  "Hammer of the Gods": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "duration",
+    "conditional"
+  ],
+  "Hand of Chayula": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "chaos",
+    "meta"
+  ],
+  "Herald of Ash": [
+    "buff",
+    "persistent",
+    "aoe",
+    "fire",
+    "duration",
+    "herald",
+    "bow",
+    "claw",
+    "crossbow",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "Herald of Blood": [
+    "buff",
+    "attack",
+    "persistent",
+    "aoe",
+    "physical",
+    "herald",
+    "payoff",
+    "bow",
+    "claw",
+    "crossbow",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "Herald of Ice": [
+    "buff",
+    "attack",
+    "persistent",
+    "aoe",
+    "cold",
+    "herald",
+    "payoff"
+  ],
+  "Herald of Plague": [
+    "buff",
+    "persistent",
+    "chaos",
+    "herald",
+    "bow",
+    "claw",
+    "crossbow",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "Herald of Thunder": [
+    "buff",
+    "attack",
+    "persistent",
+    "aoe",
+    "lightning",
+    "herald",
+    "payoff",
+    "bow",
+    "claw",
+    "crossbow",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "High Velocity Rounds": [
+    "attack",
+    "ammunition",
+    "projectile",
+    "physical",
+    "duration",
+    "payoff",
+    "crossbow"
+  ],
+  "Ice Nova": [
+    "spell",
+    "aoe",
+    "cold",
+    "duration",
+    "nova"
+  ],
+  "Ice Shot": [
+    "attack",
+    "projectile",
+    "cold",
+    "barrageable",
+    "bow"
+  ],
+  "Ice Strike": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "cold"
+  ],
+  "Ice-Tipped Arrows": [
+    "spell",
+    "attack",
+    "buff",
+    "aoe",
+    "projectile",
+    "trigger",
+    "cold",
+    "duration",
+    "bow",
+    "spear"
+  ],
+  "Incinerate": [
+    "spell",
+    "aoe",
+    "sustained",
+    "fire",
+    "duration",
+    "channelling"
+  ],
+  "Infernal Cry": [
+    "warcry",
+    "aoe",
+    "trigger",
+    "fire",
+    "duration",
+    "nova",
+    "mace"
+  ],
+  "Into the Breach": [
+    "buff",
+    "persistent",
+    "remnant"
+  ],
+  "Iron Ward": [
+    "buff",
+    "persistent",
+    "aoe",
+    "physical",
+    "nova"
+  ],
+  "Kelari's Malediction": [
+    "minion",
+    "persistent",
+    "command",
+    "duration"
+  ],
+  "Kelari, the Tainted Sands": [
+    "minion",
+    "persistent",
+    "command",
+    "physical"
+  ],
+  "Killing Palm": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "physical"
+  ],
+  "Leap Slam": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "travel",
+    "payoff"
+  ],
+  "Life Remnants": [
+    "buff",
+    "persistent",
+    "remnant"
+  ],
+  "Lightning Arrow": [
+    "attack",
+    "aoe",
+    "projectile",
+    "lightning",
+    "chaining",
+    "barrageable"
+  ],
+  "Lightning Bolt": [
+    "spell",
+    "aoe",
+    "lightning",
+    "quarterstaff"
+  ],
+  "Lightning Conduit": [
+    "spell",
+    "aoe",
+    "lightning"
+  ],
+  "Lightning Rod": [
+    "attack",
+    "aoe",
+    "projectile",
+    "sustained",
+    "lightning",
+    "duration",
+    "barrageable",
+    "bow"
+  ],
+  "Lightning Spear": [
+    "attack",
+    "aoe",
+    "projectile",
+    "lightning",
+    "barrageable",
+    "spear"
+  ],
+  "Lightning Warp": [
+    "spell",
+    "aoe",
+    "lightning",
+    "duration",
+    "remnant"
+  ],
+  "Lingering Illusion": [
+    "buff",
+    "persistent",
+    "duration",
+    "remnant"
+  ],
+  "Living Bomb": [
+    "spell",
+    "aoe",
+    "fire",
+    "duration",
+    "remnant"
+  ],
+  "Lunar Assault": [
+    "attack",
+    "shapeshift",
+    "werewolf",
+    "aoe",
+    "melee",
+    "strike",
+    "cold"
+  ],
+  "Lunar Blessing": [
+    "warcry",
+    "attack",
+    "shapeshift",
+    "buff",
+    "werewolf",
+    "aoe",
+    "melee",
+    "trigger",
+    "cold",
+    "duration"
+  ],
+  "Magma Barrier": [
+    "buff",
+    "attack",
+    "persistent",
+    "aoe",
+    "melee",
+    "trigger",
+    "fire",
+    "mace"
+  ],
+  "Malice": [
+    "buff",
+    "persistent",
+    "aura",
+    "duration"
+  ],
+  "Mana Remnants": [
+    "buff",
+    "persistent",
+    "remnant"
+  ],
+  "Mana Tempest": [
+    "spell",
+    "buff",
+    "lightning",
+    "storm"
+  ],
+  "Mantra of Destruction": [
+    "buff",
+    "chaos",
+    "duration",
+    "conditional"
+  ],
+  "Maul": [
+    "attack",
+    "shapeshift",
+    "bear",
+    "aoe",
+    "melee",
+    "strike"
+  ],
+  "Meditate": [
+    "spell",
+    "channelling",
+    "quarterstaff"
+  ],
+  "Mirage Archer": [
+    "buff",
+    "persistent",
+    "trigger",
+    "duration",
+    "meta",
+    "bow",
+    "crossbow",
+    "spear"
+  ],
+  "Mirage Deadeye": [
+    "buff",
+    "persistent",
+    "trigger",
+    "duration",
+    "meta"
+  ],
+  "Molten Crash": [
+    "attack",
+    "shapeshift",
+    "bear",
+    "aoe",
+    "melee",
+    "slam",
+    "travel"
+  ],
+  "Moment of Vulnerability": [
+    "spell",
+    "aoe",
+    "nova"
+  ],
+  "Mortar Cannon": [
+    "totem",
+    "grenade",
+    "duration",
+    "meta",
+    "crossbow"
+  ],
+  "Navira, the Last Mirage": [
+    "minion",
+    "persistent",
+    "command",
+    "cold"
+  ],
+  "Oil Barrage": [
+    "attack",
+    "shapeshift",
+    "wyvern",
+    "aoe",
+    "projectile",
+    "sustained",
+    "channelling"
+  ],
+  "Oil Grenade": [
+    "attack",
+    "aoe",
+    "projectile",
+    "grenade",
+    "fire",
+    "duration",
+    "crossbow"
+  ],
+  "Orb of Storms": [
+    "spell",
+    "aoe",
+    "sustained",
+    "lightning",
+    "duration",
+    "chaining",
+    "orb",
+    "remnant"
+  ],
+  "Overwhelming Presence": [
+    "buff",
+    "persistent",
+    "aura",
+    "mace"
+  ],
+  "Pain Offering": [
+    "minion",
+    "buff",
+    "aoe",
+    "duration",
+    "barrageable"
+  ],
+  "Parry": [
+    "attack",
+    "melee",
+    "physical",
+    "duration",
+    "channelling"
+  ],
+  "Permafrost Bolts": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "cold",
+    "merging",
+    "crossbow"
+  ],
+  "Plague Bearer": [
+    "buff",
+    "persistent",
+    "aoe",
+    "physical",
+    "chaos",
+    "nova",
+    "bow"
+  ],
+  "Plasma Blast": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "lightning",
+    "channelling",
+    "crossbow"
+  ],
+  "Poisonburst Arrow": [
+    "attack",
+    "aoe",
+    "projectile",
+    "chaos",
+    "duration",
+    "barrageable"
+  ],
+  "Potent Exposure": [
+    "support",
+    "spell"
+  ],
+  "Pounce": [
+    "attack",
+    "minion",
+    "shapeshift",
+    "werewolf",
+    "aoe",
+    "melee",
+    "slam",
+    "trigger",
+    "mark",
+    "duration",
+    "travel",
+    "meta"
+  ],
+  "Primal Strikes": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "lightning",
+    "payoff",
+    "spear"
+  ],
+  "Profane Ritual": [
+    "spell",
+    "aoe",
+    "chaos",
+    "duration"
+  ],
+  "Punch": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike"
+  ],
+  "Purity of Fire": [
+    "buff",
+    "persistent",
+    "aura",
+    "fire"
+  ],
+  "Purity of Ice": [
+    "buff",
+    "persistent",
+    "aura",
+    "cold"
+  ],
+  "Purity of Lightning": [
+    "buff",
+    "persistent",
+    "aura",
+    "lightning"
+  ],
+  "Quarterstaff Strike": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike"
+  ],
+  "Raging Spirits": [
+    "buff",
+    "minion",
+    "persistent",
+    "fire",
+    "duration"
+  ],
+  "Raise Shield": [
+    "attack",
+    "aoe",
+    "melee",
+    "physical",
+    "channelling"
+  ],
+  "Rake": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "physical",
+    "spear"
+  ],
+  "Rampage": [
+    "attack",
+    "shapeshift",
+    "bear",
+    "aoe",
+    "melee",
+    "slam",
+    "sustained",
+    "channelling",
+    "travel"
+  ],
+  "Rapid Assault": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "physical",
+    "duration",
+    "spear"
+  ],
+  "Rapid Shot": [
+    "attack",
+    "ammunition",
+    "projectile",
+    "fire",
+    "crossbow"
+  ],
+  "Ravenous Swarm": [
+    "buff",
+    "minion",
+    "persistent",
+    "physical",
+    "chaos",
+    "duration"
+  ],
+  "Reap": [
+    "spell",
+    "aoe",
+    "physical",
+    "duration"
+  ],
+  "Rend": [
+    "attack",
+    "shapeshift",
+    "wyvern",
+    "aoe",
+    "melee",
+    "strike",
+    "duration"
+  ],
+  "Resonating Shield": [
+    "attack",
+    "aoe",
+    "melee",
+    "sustained",
+    "physical",
+    "channelling"
+  ],
+  "Rhoa Mount": [
+    "minion",
+    "buff",
+    "companion",
+    "persistent",
+    "spear"
+  ],
+  "Rolling Magma": [
+    "attack",
+    "shapeshift",
+    "wyvern",
+    "aoe",
+    "projectile",
+    "fire",
+    "detonator"
+  ],
+  "Rolling Slam": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "mace"
+  ],
+  "Ruzhan, the Blazing Sword": [
+    "minion",
+    "persistent",
+    "command",
+    "fire"
+  ],
+  "Savage Fury": [
+    "buff",
+    "persistent",
+    "duration"
+  ],
+  "Scavenged Plating": [
+    "buff",
+    "persistent",
+    "physical",
+    "duration",
+    "crossbow"
+  ],
+  "Scourge Arrow": [
+    "attack",
+    "projectile",
+    "chaos",
+    "bow"
+  ],
+  "Seismic Cry": [
+    "warcry",
+    "aoe",
+    "physical",
+    "nova"
+  ],
+  "Shattering Palm": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "trigger",
+    "cold"
+  ],
+  "Shield Charge": [
+    "attack",
+    "aoe",
+    "melee",
+    "physical",
+    "channelling",
+    "travel",
+    "bow",
+    "claw",
+    "crossbow",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "Shield Wall": [
+    "attack",
+    "aoe",
+    "melee",
+    "physical",
+    "duration"
+  ],
+  "Shockburst Rounds": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "lightning",
+    "payoff",
+    "crossbow"
+  ],
+  "Shockwave Totem": [
+    "attack",
+    "totem",
+    "aoe",
+    "melee",
+    "slam",
+    "duration",
+    "nova"
+  ],
+  "Shred": [
+    "attack",
+    "shapeshift",
+    "werewolf",
+    "aoe",
+    "melee",
+    "strike",
+    "projectile",
+    "trigger",
+    "cold",
+    "payoff"
+  ],
+  "Siege Cascade": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "sustained",
+    "crossbow"
+  ],
+  "Sigil of Power": [
+    "spell",
+    "aoe",
+    "duration",
+    "staged",
+    "quarterstaff"
+  ],
+  "Siphon Elements": [
+    "buff",
+    "persistent",
+    "lightning",
+    "cold",
+    "fire",
+    "remnant"
+  ],
+  "Siphoning Strike": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "lightning",
+    "payoff"
+  ],
+  "Skeletal Arsonist": [
+    "minion",
+    "persistent",
+    "fire",
+    "detonator"
+  ],
+  "Skeletal Brute": [
+    "minion",
+    "warcry",
+    "persistent",
+    "physical",
+    "payoff"
+  ],
+  "Skeletal Cleric": [
+    "minion",
+    "persistent"
+  ],
+  "Skeletal Frost Mage": [
+    "minion",
+    "persistent",
+    "cold"
+  ],
+  "Skeletal Reaver": [
+    "minion",
+    "persistent",
+    "physical"
+  ],
+  "Skeletal Sniper": [
+    "minion",
+    "persistent",
+    "physical",
+    "fire",
+    "chaos"
+  ],
+  "Skeletal Storm Mage": [
+    "minion",
+    "persistent",
+    "lightning"
+  ],
+  "Skeletal Warrior": [
+    "minion",
+    "persistent",
+    "physical"
+  ],
+  "Snap": [
+    "spell",
+    "aoe",
+    "lightning",
+    "cold",
+    "fire",
+    "payoff",
+    "remnant"
+  ],
+  "Snipe": [
+    "attack",
+    "aoe",
+    "projectile",
+    "cold",
+    "channelling",
+    "payoff",
+    "barrageable",
+    "bow"
+  ],
+  "Sniper's Mark": [
+    "mark",
+    "duration",
+    "spear"
+  ],
+  "Solar Orb": [
+    "spell",
+    "aoe",
+    "sustained",
+    "fire",
+    "duration",
+    "orb"
+  ],
+  "Sorcery Ward": [
+    "spell",
+    "buff",
+    "persistent",
+    "lightning",
+    "cold",
+    "fire"
+  ],
+  "Soul Offering": [
+    "minion",
+    "buff",
+    "duration"
+  ],
+  "Spark": [
+    "spell",
+    "projectile",
+    "lightning",
+    "duration"
+  ],
+  "Spear Stab": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "spear"
+  ],
+  "Spear Throw": [
+    "attack",
+    "aoe",
+    "projectile",
+    "barrageable",
+    "spear"
+  ],
+  "Spearfield": [
+    "attack",
+    "aoe",
+    "melee",
+    "sustained",
+    "duration",
+    "hazard",
+    "spear"
+  ],
+  "Spell Totem": [
+    "spell",
+    "totem",
+    "duration",
+    "conditional",
+    "meta",
+    "mace"
+  ],
+  "Spiral Volley": [
+    "attack",
+    "projectile",
+    "sustained",
+    "bow"
+  ],
+  "Splitting Steel": [
+    "attack",
+    "projectile",
+    "physical"
+  ],
+  "Staggering Palm": [
+    "attack",
+    "buff",
+    "aoe",
+    "melee",
+    "strike",
+    "projectile",
+    "physical",
+    "duration",
+    "wind"
+  ],
+  "Stampede": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "duration",
+    "travel"
+  ],
+  "Storm Lance": [
+    "attack",
+    "aoe",
+    "projectile",
+    "sustained",
+    "lightning",
+    "duration",
+    "barrageable",
+    "spear"
+  ],
+  "Storm Wave": [
+    "attack",
+    "aoe",
+    "melee",
+    "lightning",
+    "quarterstaff"
+  ],
+  "Stormblast Bolts": [
+    "attack",
+    "aoe",
+    "ammunition",
+    "projectile",
+    "lightning",
+    "duration",
+    "crossbow"
+  ],
+  "Stormcaller Arrow": [
+    "attack",
+    "aoe",
+    "projectile",
+    "lightning",
+    "duration",
+    "barrageable",
+    "bow"
+  ],
+  "Summon Infernal Hound": [
+    "minion",
+    "companion",
+    "persistent",
+    "fire",
+    "claw",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "Sunder": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "duration",
+    "payoff",
+    "mace"
+  ],
+  "Tempest Bell": [
+    "attack",
+    "aoe",
+    "melee",
+    "sustained",
+    "duration",
+    "conditional",
+    "quarterstaff"
+  ],
+  "Tempest Flurry": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "lightning",
+    "quarterstaff"
+  ],
+  "Temporal Chains": [
+    "spell",
+    "aoe",
+    "duration",
+    "curse",
+    "quarterstaff"
+  ],
+  "Thrashing Vines": [
+    "spell",
+    "aoe",
+    "sustained",
+    "physical",
+    "duration",
+    "plant",
+    "mace"
+  ],
+  "Thunderous Leap": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "lightning",
+    "detonator",
+    "travel"
+  ],
+  "Thunderstorm": [
+    "spell",
+    "aoe",
+    "sustained",
+    "lightning",
+    "duration",
+    "storm"
+  ],
+  "Time Freeze": [
+    "spell",
+    "aoe",
+    "duration"
+  ],
+  "Time of Need": [
+    "buff",
+    "persistent",
+    "duration"
+  ],
+  "Tornado": [
+    "spell",
+    "aoe",
+    "physical",
+    "duration",
+    "wind",
+    "storm"
+  ],
+  "Tornado Shot": [
+    "attack",
+    "aoe",
+    "projectile",
+    "physical",
+    "duration",
+    "barrageable",
+    "wind",
+    "bow"
+  ],
+  "Toxic Domain": [
+    "buff",
+    "attack",
+    "aoe",
+    "physical",
+    "chaos",
+    "duration",
+    "plant",
+    "bow",
+    "crossbow",
+    "spear"
+  ],
+  "Toxic Growth": [
+    "attack",
+    "aoe",
+    "projectile",
+    "chaos",
+    "barrageable",
+    "plant",
+    "bow"
+  ],
+  "Twister": [
+    "attack",
+    "aoe",
+    "projectile",
+    "duration",
+    "barrageable",
+    "wind"
+  ],
+  "Unbound Avatar": [
+    "buff",
+    "lightning",
+    "cold",
+    "fire",
+    "duration",
+    "conditional"
+  ],
+  "Unearth": [
+    "spell",
+    "minion",
+    "aoe",
+    "physical",
+    "duration"
+  ],
+  "Vine Arrow": [
+    "attack",
+    "aoe",
+    "projectile",
+    "chaos",
+    "duration",
+    "barrageable",
+    "plant",
+    "bow"
+  ],
+  "Void Illusion": [
+    "attack",
+    "buff",
+    "persistent",
+    "aoe",
+    "trigger",
+    "duration"
+  ],
+  "Volcanic Fissure": [
+    "attack",
+    "aoe",
+    "melee",
+    "slam",
+    "sustained",
+    "fire",
+    "duration"
+  ],
+  "Volcano": [
+    "spell",
+    "aoe",
+    "projectile",
+    "sustained",
+    "fire",
+    "duration",
+    "channelling",
+    "crossbow"
+  ],
+  "Voltaic Grenade": [
+    "attack",
+    "aoe",
+    "projectile",
+    "grenade",
+    "lightning",
+    "duration"
+  ],
+  "Voltaic Mark": [
+    "mark",
+    "buff",
+    "lightning",
+    "duration",
+    "spear"
+  ],
+  "Vulnerability": [
+    "spell",
+    "aoe",
+    "physical",
+    "duration",
+    "curse",
+    "claw",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear"
+  ],
+  "Walking Calamity": [
+    "attack",
+    "shapeshift",
+    "buff",
+    "bear",
+    "aoe",
+    "trigger",
+    "fire",
+    "duration",
+    "conditional"
+  ],
+  "War Banner": [
+    "banner",
+    "buff",
+    "persistent",
+    "aoe",
+    "aura",
+    "duration",
+    "conditional"
+  ],
+  "Whirling Assault": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "quarterstaff"
+  ],
+  "Whirling Slash": [
+    "attack",
+    "aoe",
+    "melee",
+    "strike",
+    "staged",
+    "wind"
+  ],
+  "Wind Blast": [
+    "attack",
+    "aoe",
+    "melee",
+    "wind",
+    "quarterstaff"
+  ],
+  "Wind Dancer": [
+    "buff",
+    "attack",
+    "persistent",
+    "aoe",
+    "melee",
+    "trigger",
+    "staged",
+    "bow",
+    "claw",
+    "crossbow",
+    "dagger",
+    "flail",
+    "axe",
+    "mace",
+    "sword",
+    "spear",
+    "quarterstaff"
+  ],
+  "Wing Blast": [
+    "attack",
+    "shapeshift",
+    "wyvern",
+    "aoe",
+    "melee",
+    "wind"
+  ],
+  "Withering Presence": [
+    "buff",
+    "persistent",
+    "aura",
+    "chaos",
+    "duration"
+  ],
+  "Wolf Pack": [
+    "minion",
+    "companion",
+    "persistent",
+    "physical"
+  ]
+}

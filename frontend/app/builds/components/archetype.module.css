@@ -1,0 +1,278 @@
+/* ── League step ──────────────────────────────────────────────────────────── */
+.leagueGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .leagueGrid { grid-template-columns: 1fr; }
+}
+
+.leagueCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 36px 24px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.leagueCard:hover {
+  border-color: #c8963c;
+  background: #1a1500;
+  transform: translateY(-2px);
+}
+
+.leagueIcon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.leagueName {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8d4a8;
+  letter-spacing: 0.06em;
+}
+
+.leagueDesc {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  color: #4a4a6a;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+
+/* ── Archetype grid ────────────────────────────────────────────────────────── */
+.archGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .archGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.archCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.archCard:hover {
+  border-color: #c8963c;
+  background: #1a1500;
+  transform: translateY(-2px);
+}
+
+.archIcon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.archLabel {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8d4a8;
+  letter-spacing: 0.05em;
+}
+
+.archCount {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #4a4a6a;
+}
+
+/* ── Sub-archetype grid ────────────────────────────────────────────────────── */
+.subGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .subGrid { grid-template-columns: 1fr 1fr; }
+}
+
+.subCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.subCard:hover {
+  border-color: #c8963c;
+  background: #1a1500;
+  transform: translateY(-2px);
+}
+
+.subLabel {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e8d4a8;
+  letter-spacing: 0.05em;
+}
+
+.subCount {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #4a4a6a;
+}
+
+/* ── Build list ────────────────────────────────────────────────────────────── */
+.buildList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.buildRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #0d0d14;
+  border: 1px solid #2a2a3a;
+  border-radius: 2px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.buildRow:hover {
+  border-color: #c8963c55;
+  background: #111108;
+}
+
+.buildRowPending {
+  opacity: 0.6;
+}
+
+.buildRank {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: #3a3a5a;
+  width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.buildMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.buildSkill {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #c8b89a;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.buildRow:hover .buildSkill {
+  color: #e8b84a;
+}
+
+.buildAsc {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #c8963c;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.buildMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.buildCount {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: #4a4a6a;
+}
+
+.buildPendingBadge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a5030;
+  background: #1a1208;
+  border: 1px solid #3a2810;
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+/* ── States ────────────────────────────────────────────────────────────────── */
+.loadingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4a4a6a;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 20px 0;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #2a2a3a;
+  border-top-color: #c8963c;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.errorText {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  color: #cc4444;
+  padding: 12px 0;
+}
+
+.emptyText {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  color: #4a4a6a;
+  padding: 20px 0;
+}

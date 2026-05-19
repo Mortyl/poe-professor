@@ -25,11 +25,17 @@ import json
 import re
 import gzip
 import time
+import random
 import os
 import argparse
 import base64
 import zlib
 import xml.etree.ElementTree as ET
+try:
+    import msgpack
+    HAS_MSGPACK = True
+except ImportError:
+    HAS_MSGPACK = False
 
 # Force UTF-8 output so non-ASCII character names don't crash on Windows
 if hasattr(sys.stdout, "reconfigure"):
@@ -37,12 +43,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 POB_DIR = os.path.join(os.path.dirname(__file__), "pob_codes")
 
-# Delay in seconds between successful code fetches — conservative to avoid 429s
-CHAR_DELAY        = 2.0
-# Short delay after a no-code/404 response (doesn't stress the API)
-NO_CODE_DELAY     = 0.5
-# Extra pause between switching to a new time-machine snapshot
-SNAPSHOT_DELAY    = 10.0
+# Delay ranges (seconds) — randomised to avoid fixed-interval bot detection
+CHAR_DELAY_RANGE     = (3.5, 6.5)   # between successful character fetches
+NO_CODE_DELAY_RANGE  = (1.5, 3.0)   # after a no-code/404 response
+SNAPSHOT_DELAY_RANGE = (12.0, 22.0) # between time-machine snapshots
 
 
 def decode_pob(code: str) -> bytes | None:
@@ -54,6 +58,19 @@ def decode_pob(code: str) -> bytes | None:
         return zlib.decompress(base64.b64decode(code))
     except Exception:
         return None
+
+
+def get_character_level(xml_bytes: bytes) -> int:
+    """Return character level from PoB XML, or 0 if not found."""
+    try:
+        root = ET.fromstring(xml_bytes)
+        # PoB stores level in <Build level="X" ...>
+        build = root.find("Build")
+        if build is not None:
+            return int(build.get("level", 0))
+    except Exception:
+        pass
+    return 0
 
 
 def has_skill_with_supports(xml_bytes: bytes, skill: str, min_supports: int = 3) -> bool:
@@ -72,14 +89,13 @@ def has_skill_with_supports(xml_bytes: bytes, skill: str, min_supports: int = 3)
         )
         if not has_main:
             continue
+        # In PoB2, any gem co-linked with the skill is a support by definition.
+        # Don't filter by gemId/skillId string — PoB2 uses different ID formats
+        # that don't contain "Support", causing valid builds to be rejected.
         supports = [
             g for g in gems
             if g.attrib.get("enabled", "true") == "true"
             and g.attrib.get("nameSpec", "").lower() != skill_lower
-            and (
-                "Support" in g.attrib.get("gemId", "")
-                or "Support" in g.attrib.get("skillId", "")
-            )
         ]
         if len(supports) >= min_supports:
             return True
@@ -114,10 +130,11 @@ def fetch_with_retry(url: str, max_retries: int = 4, base_delay: float = 3.0) ->
     return None
 
 
-def get_snapshot(league: str = "sc") -> tuple[str, str, list[str]]:
+def get_snapshot(league: str = "sc") -> tuple[str, str, list[str], str]:
     """
-    Return (version, snapshot_name, available_time_machine_labels) for the league.
+    Return (version, snapshot_name, available_time_machine_labels, passive_ids) for the league.
     Labels look like: "day-1", "day-3", "week-1", "week-2", etc.
+    passive_ids is the passiveids query parameter required by the search endpoint.
     """
     data = json.loads(fetch("https://poe.ninja/poe2/api/data/index-state"))
     for snap in data.get("snapshotVersions", []):
@@ -135,19 +152,36 @@ def get_snapshot(league: str = "sc") -> tuple[str, str, list[str]]:
         )
         if match:
             labels = snap.get("timeMachineLabels", [])
-            return snap["version"], snap["snapshotName"], labels
+            passive_ids = str(snap.get("passiveIds", snap.get("passiveids", "55275")))
+            return snap["version"], snap["snapshotName"], labels, passive_ids
     raise RuntimeError(f"Could not find snapshot for league '{league}'")
 
 
 def get_character_list(snapshot: str, snapshot_name: str, skill: str, ascendancy: str,
-                       time_machine: str = "") -> list[tuple[str, str]]:
+                       time_machine: str = "", passive_ids: str = "55275",
+                       item: str = "") -> list[tuple[str, str]]:
     """Return list of (character_name, account) pairs from the search endpoint."""
-    skill_enc = urllib.parse.quote(skill)
-    url = (
-        f"https://poe.ninja/poe2/api/builds/{snapshot}/search"
-        f"?overview={snapshot_name}&skill={skill_enc}&class={ascendancy}"
-        f"&timeMachine={urllib.parse.quote(time_machine)}"
-    )
+    if item:
+        # Item mode — search all builds using a specific unique, no class/skill filter
+        item_enc = urllib.parse.quote(item.replace(" ", "+"), safe="+")
+        url = (
+            f"https://poe.ninja/poe2/api/builds/{snapshot}/search"
+            f"?timemachine={urllib.parse.quote(time_machine)}"
+            f"&items={item_enc}"
+            f"&heatmap=true"
+            f"&overview={snapshot_name}"
+        )
+    else:
+        skill_enc = urllib.parse.quote(skill.replace(" ", "+"), safe="+")
+        asc_enc   = urllib.parse.quote(ascendancy, safe="")
+        url = (
+            f"https://poe.ninja/poe2/api/builds/{snapshot}/search"
+            f"?timemachine={urllib.parse.quote(time_machine)}"
+            f"&class={asc_enc}"
+            f"&skills={skill_enc}"
+            f"&heatmap=true"
+            f"&overview={snapshot_name}"
+        )
     raw = fetch(url)
 
     try:
@@ -155,7 +189,28 @@ def get_character_list(snapshot: str, snapshot_name: str, skill: str, ascendancy
     except Exception:
         pass
 
-    # UTF-8-aware string extractor — parameterised by minimum run length
+    # Try JSON first (clean response)
+    try:
+        data = json.loads(raw.decode("utf-8"))
+        characters = data.get("characters", [])
+        if characters:
+            pairs = [
+                (c["name"].rstrip("*"), c["account"].rstrip("*"))
+                for c in characters
+                if c.get("name") and c.get("account")
+            ]
+            seen: set[tuple[str, str]] = set()
+            unique: list[tuple[str, str]] = []
+            for p in pairs:
+                if p not in seen:
+                    seen.add(p)
+                    unique.append(p)
+            print(f"  Found {len(unique)} characters")
+            return unique
+    except Exception:
+        pass
+
+    # Fall back to binary string extraction (response is MessagePack or similar)
     def extract_strings(data: bytes, min_len: int) -> list[str]:
         pattern = re.compile(
             rb"(?:[\x20-\x7e]"
@@ -172,18 +227,14 @@ def get_character_list(snapshot: str, snapshot_name: str, skill: str, ascendancy
                 out.append(m.group().decode("ascii", errors="ignore"))
         return out
 
-    # Use min_len=4 for the full scan (finds schema markers reliably)
     strings = extract_strings(raw, 4)
-
     try:
-        name_idx    = strings.index("name")
-        account_idx = strings.index("account")
+        strings.index("name")
+        strings.index("account")
     except ValueError:
         print("  WARNING: could not find 'name'/'account' markers in response")
         return []
 
-    # Re-scan the name block with min_len=1 so short character names (< 4 chars)
-    # aren't filtered out — a single missing name would shift every account pairing.
     name_marker_bytes    = b"name"
     account_marker_bytes = b"account"
     name_pos    = raw.find(name_marker_bytes)
@@ -196,28 +247,27 @@ def get_character_list(snapshot: str, snapshot_name: str, skill: str, ascendancy
     name_block    = raw[name_pos + len(name_marker_bytes) : account_pos]
     account_block = raw[account_pos + len(account_marker_bytes) :]
 
-    char_names    = [n.rstrip("*") for n in extract_strings(name_block, 3)
-                     if n.rstrip("*") not in ("name", "account")]
-    account_names = extract_strings(account_block, 4)
+    char_names = [n.rstrip("*") for n in extract_strings(name_block, 1)
+                  if n.rstrip("*") not in ("name", "account")
+                  and len(n.rstrip("*")) >= 2
+                  and any(c.isalpha() for c in n.rstrip("*"))]
 
-    schema_fields = {"class", "skills", "level", "life", "keypassives", "items", "mana"}
-    trimmed: list[str] = []
-    for a in account_names:
-        if a.rstrip("*") in schema_fields:
-            break
-        trimmed.append(a.rstrip("*"))
-    account_names = trimmed
+    account_pattern = re.compile(r'^.+-\d{4}$')
+    account_names = [
+        s.rstrip("*") for s in extract_strings(account_block, 4)
+        if account_pattern.match(s.rstrip("*"))
+    ]
 
     pairs = list(zip(char_names, account_names))
-    seen: set[tuple[str, str]] = set()
-    unique: list[tuple[str, str]] = []
+    seen2: set[tuple[str, str]] = set()
+    unique2: list[tuple[str, str]] = []
     for p in pairs:
-        if p not in seen:
-            seen.add(p)
-            unique.append(p)
+        if p not in seen2:
+            seen2.add(p)
+            unique2.append(p)
 
-    print(f"  Found {len(unique)} characters")
-    return unique
+    print(f"  Found {len(unique2)} characters")
+    return unique2
 
 
 def fetch_pob_code(snapshot: str, snapshot_name: str, account: str,
@@ -225,7 +275,7 @@ def fetch_pob_code(snapshot: str, snapshot_name: str, account: str,
     """Fetch the PoB export code for a character at a given time-machine snapshot."""
     url = (
         f"https://poe.ninja/poe2/api/builds/{snapshot}/character"
-        f"?account={urllib.parse.quote(account)}&name={urllib.parse.quote(character)}"
+        f"?account={urllib.parse.quote(account, safe='')}&name={urllib.parse.quote(character, safe='')}"
         f"&overview={snapshot_name}&timeMachine={urllib.parse.quote(time_machine)}"
     )
     raw = fetch_with_retry(url)
@@ -243,6 +293,9 @@ def main():
                         help="Main skill name")
     parser.add_argument("--ascendancy", default="Deadeye",
                         help="Ascendancy name")
+    parser.add_argument("--item",       default="",
+                        help="Unique item name — scrapes top builds using this item "
+                             "regardless of skill/ascendancy. Overrides --skill/--ascendancy.")
     parser.add_argument("--league",     default="sc",
                         help="League type: sc, ssf, hc, hcssf")
     parser.add_argument("--snapshots",  default="",
@@ -254,13 +307,18 @@ def main():
     parser.add_argument("--append", action="store_true",
                         help="Append new codes to an existing JSONL file rather than overwriting. "
                              "Existing codes are loaded first so duplicates are never written twice.")
+    parser.add_argument("--variant-skill", default="",
+                        help="If set, only include builds containing this skill. Used for variant scraping.")
+    parser.add_argument("--min-level", type=int, default=75,
+                        help="Skip builds where character level is below this (default 75).")
     args = parser.parse_args()
 
     os.makedirs(POB_DIR, exist_ok=True)
 
     print(f"Getting snapshot for [{args.league.upper()}]...")
-    snapshot, snapshot_name, available_labels = get_snapshot(args.league)
-    print(f"  Snapshot : {snapshot} ({snapshot_name})")
+    snapshot, snapshot_name, available_labels, passive_ids = get_snapshot(args.league)
+    print(f"  Snapshot   : {snapshot} ({snapshot_name})")
+    print(f"  Passive IDs: {passive_ids}")
     print(f"  Available time-machine labels: {sorted(available_labels)}")
 
     # Build list of time-machine labels to fetch.
@@ -277,9 +335,17 @@ def main():
     print(f"\nWill fetch across {len(requested_labels)} snapshot(s): "
           f"{[l or 'latest' for l in requested_labels]}")
 
-    # One file per skill+ascendancy+league — no _early suffix.
+    # One file per skill+ascendancy+league (+ variant if set) — no _early suffix.
     # Snapshot tags on each JSONL line handle league_starter vs endgame filtering.
-    slug      = f"{args.skill.lower().replace(' ', '_')}_{args.ascendancy.lower()}_{args.league}"
+    # Item mode uses item name as the slug instead of skill+ascendancy.
+    if args.item:
+        item_slug  = args.item.lower().replace(" ", "_").replace("'", "").replace(",", "")
+        slug = f"{item_slug}_{args.league}"
+    elif args.variant_skill:
+        variant_slug = args.variant_skill.lower().replace(' ', '_')
+        slug = f"{args.skill.lower().replace(' ', '_')}_{variant_slug}_{args.ascendancy.lower()}_{args.league}"
+    else:
+        slug = f"{args.skill.lower().replace(' ', '_')}_{args.ascendancy.lower()}_{args.league}"
     out_path  = os.path.join(POB_DIR, f"{slug}.txt")
     jsonl_path = out_path.replace(".txt", ".jsonl")
 
@@ -314,7 +380,8 @@ def main():
         print(f"{'='*60}")
 
         print(f"  Fetching character list for [{label_display}]...")
-        pairs = get_character_list(snapshot, snapshot_name, args.skill, args.ascendancy, label)
+        pairs = get_character_list(snapshot, snapshot_name, args.skill, args.ascendancy,
+                                   label, passive_ids, item=args.item)
         if not pairs:
             print("  No characters found for this snapshot — skipping.")
             continue
@@ -325,35 +392,76 @@ def main():
         rejected = 0
         for i, (char_name, account) in enumerate(pairs):
             print(f"  [{i+1}/{total_chars}] {char_name} ({account})  [{label_display}]")
+            if not char_name.strip():
+                print(f"    - skipped (blank character name)")
+                continue
             code = fetch_pob_code(snapshot, snapshot_name, account, char_name, label)
             if code:
                 if code in all_codes:
                     skipped += 1
                     print(f"    ~ duplicate — skipped")
                 else:
-                    # Verify the build actually has the target skill linked to 3+ supports.
-                    # poe.ninja search can return builds that don't genuinely use the skill
-                    # (e.g. Mercenary/grenadier builds appearing in a Deadeye LA search).
                     xml_bytes = decode_pob(code)
-                    if xml_bytes and has_skill_with_supports(xml_bytes, args.skill, min_supports=3):
-                        all_codes.add(code)
-                        ordered_codes.append(code)
-                        ordered_entries.append({"code": code, "snapshot": label_display})
-                        got += 1
-                        print(f"    + new code ({len(code)} chars)")
+                    if xml_bytes:
+                        char_level = get_character_level(xml_bytes)
+                        if char_level < args.min_level:
+                            rejected += 1
+                            print(f"    - level {char_level} < {args.min_level} — skipped")
+                        elif args.item:
+                            # Item mode — level check is enough, no skill verification
+                            all_codes.add(code)
+                            ordered_codes.append(code)
+                            ordered_entries.append({"code": code, "snapshot": label_display})
+                            got += 1
+                            print(f"    + new code (level {char_level}, {len(code)} chars)")
+                        elif has_skill_with_supports(xml_bytes, args.skill, min_supports=3):
+                            all_codes.add(code)
+                            ordered_codes.append(code)
+                            ordered_entries.append({"code": code, "snapshot": label_display})
+                            got += 1
+                            print(f"    + new code (level {char_level}, {len(code)} chars)")
+                        else:
+                            rejected += 1
+                            print(f"    - skill check failed — skipped")
                     else:
                         rejected += 1
-                        print(f"    - rejected (skill not found with 3+ supports)")
+                        print(f"    - rejected (could not decode PoB)")
             else:
                 print(f"    - no code")
             # Full delay only on success; rejected/404 responses don't stress the API
-            time.sleep(CHAR_DELAY if code else NO_CODE_DELAY)
+            delay = random.uniform(*CHAR_DELAY_RANGE) if code else random.uniform(*NO_CODE_DELAY_RANGE)
+            time.sleep(delay)
 
-        print(f"\n  Snapshot done: {got} new codes, {skipped} duplicates, {rejected} rejected (wrong skill)")
+        print(f"\n  Snapshot done: {got} new codes, {skipped} duplicates, {rejected} rejected")
 
         if snap_idx < total_snapshots - 1:
-            print(f"  Pausing {SNAPSHOT_DELAY:.0f}s before next snapshot...")
-            time.sleep(SNAPSHOT_DELAY)
+            snap_pause = random.uniform(*SNAPSHOT_DELAY_RANGE)
+            print(f"  Pausing {snap_pause:.1f}s before next snapshot...")
+            time.sleep(snap_pause)
+
+    # Variant filtering: if --variant-skill is set, discard entries whose decoded
+    # PoB XML does not contain the variant skill name in any <Gem nameSpec> attribute.
+    if args.variant_skill:
+        before = len(ordered_entries)
+        def _has_variant_skill(entry: dict, variant: str) -> bool:
+            xml_bytes = decode_pob(entry["code"])
+            if not xml_bytes:
+                return False
+            variant_lower = variant.lower()
+            try:
+                root = ET.fromstring(xml_bytes)
+            except ET.ParseError:
+                return False
+            for gem_el in root.iter("Gem"):
+                if gem_el.attrib.get("nameSpec", "").lower() == variant_lower:
+                    return True
+            return False
+        ordered_entries = [
+            e for e in ordered_entries
+            if _has_variant_skill(e, args.variant_skill)
+        ]
+        ordered_codes = [e["code"] for e in ordered_entries]
+        print(f"  Variant filter '{args.variant_skill}': {before} → {len(ordered_entries)} builds")
 
     write_mode = "a" if args.append else "w"
 

@@ -1,0 +1,32 @@
+# Attack tag weights
+# Applied to any skill with the Attack tag
+
+offense:
+  attack_damage_+%:                                              { base: 0.0, offense: 0.9,  defense: 0.0, boss: 1.0, map: 0.9 }
+  attack_speed_+%:                                               { base: 0.0, offense: 0.8,  defense: 0.0, boss: 0.6, map: 1.0 }
+  accuracy_rating_+%:                                            { base: 0.0, offense: 0.4,  defense: 0.0, boss: 0.5, map: 0.3 }
+  elemental_damage_with_attack_skills_+%:                        { base: 0.0, offense: 0.85, defense: 0.0, boss: 0.9, map: 0.85 }
+
+  # Crit — dominant in endgame attack builds (92.9% prevalence in top LA Deadeye).
+  # High boss multiplier because crit is gear-dependent and endgame bossing is where it shines.
+  # Lower map multiplier keeps it from crowding out clear-speed nodes on league starters.
+  critical_strike_chance_+%:                                     { base: 0.0, offense: 0.8,  defense: 0.0, boss: 1.3, map: 0.8 }
+  base_critical_strike_multiplier_+:                             { base: 0.0, offense: 0.75, defense: 0.0, boss: 1.3, map: 0.8 }
+  attack_additional_critical_strike_chance_permyriad:            { base: 0.0, offense: 0.07, defense: 0.0, boss: 1.3, map: 0.8 }
+  attack_critical_strike_multiplier_+:                           { base: 0.0, offense: 0.75, defense: 0.0, boss: 1.3, map: 0.8 }
+  attack_critical_strike_chance_+%:                              { base: 0.0, offense: 0.8,  defense: 0.0, boss: 1.3, map: 0.8 }
+  damage_+%_if_have_crit_in_past_8_seconds:                      { base: 0.0, offense: 0.75, defense: 0.0, boss: 1.2, map: 0.9 }
+  critical_strike_multiplier_+_if_have_dealt_non_crit_recently:  { base: 0.0, offense: 0.75, defense: 0.0, boss: 1.3, map: 0.8 }
+  damage_+%_for_4_seconds_on_crit:                               { base: 0.0, offense: 0.7,  defense: 0.0, boss: 1.2, map: 0.9 }
+
+  # Daze — 75-78% prevalence, enables notable damage bonuses (damage_+%_vs_dazed, crit_vs_dazed)
+  base_chance_to_daze_%:                                         { base: 0.0, offense: 0.6,  defense: 0.0, boss: 1.1, map: 1.0 }
+  damage_+%_vs_dazed_enemies:                                    { base: 0.0, offense: 0.7,  defense: 0.0, boss: 1.1, map: 1.0 }
+  critical_strike_chance_+%_vs_dazed_enemies:                    { base: 0.0, offense: 0.7,  defense: 0.0, boss: 1.2, map: 0.9 }
+  maim_on_hit_%:                                                 { base: 0.0, offense: 0.5,  defense: 0.0, boss: 0.9, map: 0.9 }
+
+  # Herald bonuses — 71.4% of top builds run all heralds, conditional on having spirit
+  lightning_damage_+%_while_affected_by_herald_of_thunder:       { base: 0.0, offense: 0.65, defense: 0.0, boss: 1.1, map: 0.9 }
+  cold_damage_+%_while_affected_by_herald_of_ice:                { base: 0.0, offense: 0.65, defense: 0.0, boss: 1.1, map: 0.9 }
+  fire_damage_+%_while_affected_by_herald_of_ash:                { base: 0.0, offense: 0.65, defense: 0.0, boss: 1.1, map: 0.9 }
+  damage_+%_while_affected_by_a_herald:                          { base: 0.0, offense: 0.65, defense: 0.0, boss: 1.1, map: 0.9 }

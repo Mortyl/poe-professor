@@ -1,0 +1,9 @@
+# Lightning tag weights
+# Applied to any skill with the Lightning tag
+
+offense:
+  elemental_damage_+%:                                    { base: 0.0, offense: 0.7, defense: 0.0, boss: 0.8, map: 0.7 }
+  attack_and_cast_speed_+%_with_lightning_skills:         { base: 0.0, offense: 0.8, defense: 0.0, boss: 0.6, map: 0.9 }
+  attack_minimum_added_lightning_damage:                  { base: 0.0, offense: 0.05, defense: 0.0, boss: 0.05, map: 0.05 }
+  attack_maximum_added_lightning_damage:                  { base: 0.0, offense: 0.05, defense: 0.0, boss: 0.05, map: 0.05 }
+  chance_for_extra_damage_roll_with_lightning_damage_%:   { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.6, map: 0.4 }

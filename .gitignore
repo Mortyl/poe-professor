@@ -40,3 +40,11 @@ Thumbs.db
 .claude/
 CLAUDE.md
 AGENTS.md
+
+# Pipeline state & scraped data (regeneratable)
+backend/pob_codes/
+backend/pipeline.db
+backend/data/SkillTreeCore_old.json
+
+# Scratch poe.ninja exploration scripts
+backend/poe_ninja_*.mjs

@@ -1,0 +1,9 @@
+# Projectile tag weights
+# Applied to any skill with the Projectile tag.
+# number_of_additional_projectiles has an integer value of 1 in the tree data,
+# so the weight is scaled up to reflect its true power (extra projectile = significant more coverage/damage).
+
+offense:
+  base_projectile_speed_+%:         { base: 0.0, offense: 0.3, defense: 0.0, boss: 0.2, map: 0.4 }
+  projectile_damage_+%:             { base: 0.0, offense: 0.9, defense: 0.0, boss: 0.9, map: 0.85 }
+  number_of_additional_projectiles: { base: 0.0, offense: 12.0, defense: 0.0, boss: 1.0, map: 1.8 }

@@ -1,0 +1,10 @@
+# DoT (Damage over Time) tag weights
+# Applied to skills where DoT is the primary damage source.
+# Key difference from hit builds: attack speed has near-zero value,
+# DoT multiplier and duration are the primary scaling stats.
+
+offense:
+  damage_over_time_+%:                      { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  dot_multiplier_+%:                        { base: 0.0, offense: 1.0, defense: 0.0, boss: 1.0, map: 1.0 }
+  ailment_duration_+%:                      { base: 0.0, offense: 0.5, defense: 0.0, boss: 0.4, map: 0.6 }
+  # Attack speed intentionally omitted — does not scale DoT damage

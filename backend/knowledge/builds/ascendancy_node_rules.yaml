@@ -1,0 +1,31 @@
+# Ascendancy node special rules
+#
+# free_nodes: node IDs that are zero-cost path junctions (don't consume a point).
+#   The allocator passes through them at no cost.
+#
+# exclusive_groups: lists of node ID sets where only ONE node can be chosen per group.
+#   When the allocator picks a node from a group, all others in that group are blocked.
+#
+# Add entries here as you discover them in-game.
+
+# ──────────────────────────────────────────────
+# RANGER1 — Deadeye
+# ──────────────────────────────────────────────
+Ranger1:
+  free_nodes:
+    - 42416  # Projectile Proximity Specialisation (junction between Point Blank and Far Shot)
+  exclusive_groups:
+    - [41875, 59542]  # Point Blank vs Far Shot
+
+# ──────────────────────────────────────────────
+# RANGER3 — Pathfinder
+# ──────────────────────────────────────────────
+Ranger3:
+  free_nodes:
+    - 16433  # Path Seeker (junction node — free like 42416 in Deadeye; you pick Sorceress/Warrior through it)
+  exclusive_groups:
+    - [12795, 57253]  # Path of the Sorceress vs Path of the Warrior — pick one
+
+# ──────────────────────────────────────────────
+# Add other ascendancies below as you discover choice nodes
+# ──────────────────────────────────────────────

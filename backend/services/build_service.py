@@ -9,17 +9,16 @@ from services.tree_service import recommend_nodes_branched
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports")
 
 
-def _load_report(skill: str, ascendancy: str, experience_level: str, report_type: str) -> dict | None:
+def _load_report(skill: str, ascendancy: str, report_type: str) -> dict | None:
     """Load a JSON report if it exists. Returns None gracefully if not found."""
     skill_slug = skill.lower().replace(" ", "_")
     asc_slug   = ascendancy.lower()
-    exp        = experience_level
 
     candidates = [
         # skill-specific report (gem links)
-        os.path.join(REPORT_DIR, f"{skill_slug}_{exp}_{report_type}.json"),
+        os.path.join(REPORT_DIR, f"{skill_slug}_league_starter_{report_type}.json"),
         # ascendancy-specific report (passives)
-        os.path.join(REPORT_DIR, f"{asc_slug}_{exp}_{report_type}.json"),
+        os.path.join(REPORT_DIR, f"{asc_slug}_league_starter_{report_type}.json"),
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -28,15 +27,15 @@ def _load_report(skill: str, ascendancy: str, experience_level: str, report_type
     return None
 
 
-def build_real_data_context(skill: str, ascendancy: str, experience_level: str) -> str:
+def build_real_data_context(skill: str, ascendancy: str) -> str:
     """
     Build a context block from scraped poe.ninja data for injection into the system prompt.
     Returns an empty string if no reports are available yet.
     """
     parts = []
-    exp_label = "league starter (days 1–14)" if experience_level == "league_starter" else "endgame (week 3+)"
+    exp_label = "league starter (days 1–14)"
 
-    gem_data = _load_report(skill, ascendancy, experience_level, "gem_links")
+    gem_data = _load_report(skill, ascendancy, "gem_links")
     if gem_data and gem_data.get("builds_analysed", 0) >= 10:
         n = gem_data["builds_analysed"]
         supports = gem_data.get("top_supports", [])
@@ -51,7 +50,7 @@ def build_real_data_context(skill: str, ascendancy: str, experience_level: str) 
         lines.append("Use this data for gem_links. Prioritise supports above 30%.")
         parts.append("\n".join(lines))
 
-    passive_data = _load_report(skill, ascendancy, experience_level, "passives")
+    passive_data = _load_report(skill, ascendancy, "passives")
     if passive_data and passive_data.get("builds_analysed", 0) >= 10:
         n = passive_data["builds_analysed"]
         notables = passive_data.get("top_notables", [])
@@ -77,12 +76,16 @@ def build_real_data_context(skill: str, ascendancy: str, experience_level: str) 
 
 USE_MOCK = False
 
+# Simple in-memory cache — avoids re-calling the API for the same build request
+# during a dev session. Cache is cleared on server restart.
+_build_cache: dict[str, BuildGuide] = {}
+
 
 async def generate_build(request: BuildRequest) -> BuildGuide:
     if USE_MOCK:
         return _get_mock_build(request.skill, request.ascendancy, request.weapon_type, request.class_name)
-    else:
-        return await _get_claude_build(request)
+
+    return _get_tree_only_build(request)
 
 
 def _get_mock_build(skill: str, ascendancy: str, weapon_type: str, class_name: str) -> BuildGuide:
@@ -111,6 +114,227 @@ def _get_mock_build(skill: str, ascendancy: str, weapon_type: str, class_name: s
     )
 
 
+def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
+    """Return a BuildGuide with the passive tree and gem links populated from real data."""
+    from models.schemas import GemLinkData, SkillGem, GemEntry, UniqueItem, GearData, GearSlot, JewelBase
+
+    tree_result = recommend_nodes_branched(
+        skill=request.skill,
+        ascendancy=request.ascendancy,
+        class_name=request.class_name,
+        league_type=request.league_type,
+    )
+    nodes     = tree_result["core"] + tree_result.get("connectors", [])
+    optional  = tree_result.get("optional", [])
+    asc_nodes = tree_result.get("asc_nodes", [])
+
+    # Default attacks — not real skills, excluded from gem link display
+    DEFAULT_ATTACKS = {"Bow Shot", "Melee Strike", "Unarmed Strike"}
+
+    # Load real gem data if available (heatmap-based gems report)
+    gem_link_data = None
+    gem_report = _load_report(request.skill, request.ascendancy, "gems")
+    if gem_report and gem_report.get("builds_analysed", 0) >= 10:
+        skill_gems = [
+            SkillGem(
+                name=g["name"],
+                pct=g["pct"],
+                supports=[GemEntry(name=s["name"], pct=s["pct"]) for s in g.get("supports", [])],
+            )
+            for g in gem_report.get("skill_gems", [])
+            if g["name"] not in DEFAULT_ATTACKS
+        ]
+        gem_link_data = GemLinkData(
+            main_skill=request.skill,
+            skill_gems=skill_gems,
+            builds_analysed=gem_report["builds_analysed"],
+        )
+
+    CHARM_SLOT_NAMES = ["Charm 1", "Charm 2", "Charm 3"]
+    CHARM_SLOT_SET   = set(CHARM_SLOT_NAMES)
+
+    def _build_gear_data(section: dict) -> GearData | None:
+        if not section:
+            return None
+
+        raw_slots: dict = section.get("slots", {})
+        gear_slots: list[GearSlot] = []
+
+        # ── Regular gear slots ──────────────────────────────────────────────
+        for slot_name, slot_data in raw_slots.items():
+            if slot_name in CHARM_SLOT_SET:
+                continue
+            top_rare_base = ""
+            top_rare_base_pct = 0.0
+            if slot_data.get("rare_bases"):
+                top_rare_base = slot_data["rare_bases"][0]["base"]
+                top_rare_base_pct = slot_data["rare_bases"][0]["pct"]
+            top_unique = None
+            if top_rare_base_pct < 1.0 and slot_data.get("uniques"):
+                u = slot_data["uniques"][0]
+                top_unique = UniqueItem(name=u["name"], base=u["base"], slot=slot_name, pct=u["pct"])
+            top_mods = [m["mod"] for m in slot_data.get("top_mods", [])[:3]]
+            gear_slots.append(GearSlot(
+                slot=slot_name,
+                top_unique=top_unique,
+                top_rare_base=top_rare_base,
+                top_rare_base_pct=top_rare_base_pct,
+                top_mods=top_mods,
+            ))
+
+        # ── Charm slots — promote uniques that beat their magic base ─────────
+        charm_bases = section.get("charm_bases", [])
+
+        charm_uniques_map: dict[str, UniqueItem] = {
+            u["name"]: UniqueItem(name=u["name"], base=u["base"], slot="Charm", pct=u["pct"])
+            for u in section.get("charm_uniques", [])
+        }
+
+        # Seed slots with top 3 magic bases
+        slots: list[dict] = [
+            {"kind": "magic", "base": cb["base"], "name": cb["base"], "pct": cb["pct"], "item": None}
+            for cb in charm_bases[:3]
+        ]
+
+        slotted_unique_names: set[str] = set()
+
+        for u in sorted(charm_uniques_map.values(), key=lambda x: x.pct, reverse=True):
+            entry = {"kind": "unique", "base": u.base, "name": u.name, "pct": u.pct, "item": u}
+
+            # Find a magic slot with the same base type
+            same_base_idx = next(
+                (i for i, s in enumerate(slots) if s["kind"] == "magic" and s["base"] == u.base),
+                None,
+            )
+
+            if same_base_idx is not None:
+                # Same-base replacement: promote unique in-place if it matches or beats the magic base
+                if u.pct >= slots[same_base_idx]["pct"]:
+                    slots[same_base_idx] = entry
+                    slotted_unique_names.add(u.name)
+            else:
+                # Different base: insert if it beats the lowest-ranked current slot (or slots < 3)
+                if len(slots) < 3 or u.pct >= slots[-1]["pct"]:
+                    slots.append(entry)
+                    slots.sort(key=lambda x: x["pct"], reverse=True)
+                    slots = slots[:3]
+                    slotted_unique_names.add(u.name)
+
+        # Assign slots to charm display positions
+        for i, slot_name in enumerate(CHARM_SLOT_NAMES):
+            if i < len(slots):
+                c = slots[i]
+                if c["kind"] == "unique":
+                    gear_slots.append(GearSlot(
+                        slot=slot_name,
+                        top_unique=c["item"],
+                        top_rare_base="",
+                        top_rare_base_pct=0.0,
+                        top_mods=[],
+                    ))
+                else:
+                    gear_slots.append(GearSlot(
+                        slot=slot_name,
+                        top_unique=None,
+                        top_rare_base=c["name"],
+                        top_rare_base_pct=c["pct"],
+                        top_mods=[],
+                    ))
+            else:
+                gear_slots.append(GearSlot(slot=slot_name))
+
+        # Optional unique charms: those that didn't make it into the slots
+        top_charm_uniques = sorted(
+            [u for u in charm_uniques_map.values()
+             if u.name not in slotted_unique_names and u.pct >= 5.0],
+            key=lambda x: x.pct, reverse=True,
+        )[:4]
+
+        # ── Jewels (10% threshold, top 3 bases) ─────────────────────────────
+        top_jewel_bases = [
+            JewelBase(base=j["base"], pct=j["pct"], top_mods=j.get("top_mods", []))
+            for j in section.get("jewel_bases", [])
+            if j["pct"] >= 10.0
+        ][:3]
+        top_jewel_uniques = [
+            UniqueItem(name=j["name"], base=j["base"], slot="Jewel", pct=j["pct"])
+            for j in section.get("jewel_uniques", [])
+            if j["pct"] >= 10.0
+        ][:4]
+
+        return GearData(
+            builds_analysed=section.get("builds_analysed", 0),
+            slots=gear_slots,
+            top_charm_uniques=top_charm_uniques,
+            top_jewel_bases=top_jewel_bases,
+            top_jewel_uniques=top_jewel_uniques,
+        )
+
+    # Load gear report (life/ES split)
+    useful_uniques    = []
+    useful_uniques_es = []
+    gear_data_life    = None
+    gear_data_es      = None
+    gear_report = _load_report(request.skill, request.ascendancy, "gear")
+    if gear_report:
+        life_section = gear_report.get("life", {})
+        es_section   = gear_report.get("es", {})
+
+        # Build gear data first so we know which uniques are already shown in slots
+        gear_data_life = _build_gear_data(life_section)
+        gear_data_es   = _build_gear_data(es_section) if es_section.get("builds_analysed", 0) >= 10 else None
+
+        # Collect unique names already displayed in gear slots for each variant
+        slotted_life = {
+            slot.top_unique.name
+            for slot in (gear_data_life.slots if gear_data_life else [])
+            if slot.top_unique
+        }
+        slotted_es = {
+            slot.top_unique.name
+            for slot in (gear_data_es.slots if gear_data_es else [])
+            if slot.top_unique
+        }
+
+        # Uniques skewed by top-player bias — too expensive to be realistic league starter advice
+        EXCLUDED_UNIQUES = {"Headhunter"}
+
+        # Exclude charms (handled separately), anything already in a gear slot, and chase uniques
+        useful_uniques = [
+            UniqueItem(name=u["name"], base=u["base"], slot=u["slot"], pct=u["pct"])
+            for u in life_section.get("top_uniques", [])
+            if "charm" not in u.get("slot", "").lower()
+            and u["name"] not in slotted_life
+            and u["name"] not in EXCLUDED_UNIQUES
+        ][:4]
+        useful_uniques_es = [
+            UniqueItem(name=u["name"], base=u["base"], slot=u["slot"], pct=u["pct"])
+            for u in es_section.get("top_uniques", [])
+            if "charm" not in u.get("slot", "").lower()
+            and u["name"] not in slotted_es
+        ][:4]
+
+    return BuildGuide(
+        skill=request.skill,
+        ascendancy=request.ascendancy,
+        overview=f"{request.skill} {request.ascendancy} build.",
+        passive_tree_notes="Passive tree generated from real poe.ninja data.",
+        key_skills=[request.skill],
+        gem_links=[],
+        gear_priorities=[],
+        playstyle_tips="",
+        disclaimer="",
+        recommended_nodes=nodes,
+        optional_nodes=optional,
+        asc_nodes=asc_nodes,
+        gem_link_data=gem_link_data,
+        useful_uniques=useful_uniques,
+        useful_uniques_es=useful_uniques_es,
+        gear_data_life=gear_data_life,
+        gear_data_es=gear_data_es,
+    )
+
+
 async def _get_claude_build(request: BuildRequest) -> BuildGuide:
     import anthropic
     import json
@@ -135,10 +359,9 @@ async def _get_claude_build(request: BuildRequest) -> BuildGuide:
         ascendancy=ascendancy,
         class_name=class_name,
         league_type=request.league_type,
-        experience_level=request.experience_level,
     )
-    nodes = tree_result["core"]
-    optional_nodes = [n for b in tree_result.get("branches", []) for n in b["nodes"]]
+    nodes = tree_result["core"] + tree_result.get("connectors", [])
+    optional_nodes = []
 
     league_labels = {
         "sc":    "Softcore",
@@ -147,7 +370,7 @@ async def _get_claude_build(request: BuildRequest) -> BuildGuide:
         "hcssf": "Hardcore Solo Self-Found",
     }
     league_label = league_labels.get(request.league_type, "Softcore")
-    experience_label = "league starter (limited passive points, prioritise survivability)" if request.experience_level == "league_starter" else "endgame (full passive allocation, maximise damage)"
+    experience_label = "league starter (limited passive points, prioritise survivability)"
 
     system_prompt = """You are PoEProfessor, an expert Path of Exile 2 build guide creator.
 
@@ -170,7 +393,7 @@ If verified knowledge is provided below, treat it as your primary reference and 
     if knowledge_context:
         system_prompt += f"\n\n{knowledge_context}"
 
-    real_data_context = build_real_data_context(skill, ascendancy, request.experience_level)
+    real_data_context = build_real_data_context(skill, ascendancy)
     if real_data_context:
         system_prompt += f"\n\n{real_data_context}"
 
@@ -194,8 +417,8 @@ Return a JSON object with exactly these fields:
 Return only valid JSON with no markdown, no code fences, no extra explanation."""
 
     message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1500,
+        model="claude-haiku-4-5",
+        max_tokens=1024,
         system=system_prompt,
         messages=[{"role": "user", "content": prompt}]
     )

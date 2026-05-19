@@ -1,0 +1,8 @@
+# Channel tag weights
+# Applied to channelling skills (Snipe, Detonating Arrow, etc.)
+# Attack speed does not benefit channelling skills — intentionally omitted.
+# Damage and cast speed while channelling are the relevant stats.
+
+offense:
+  damage_while_leeching_+%:                { base: 0.0, offense: 0.3, defense: 0.0, boss: 0.4, map: 0.2 }
+  # attack_speed intentionally omitted — does not apply to channelled skills

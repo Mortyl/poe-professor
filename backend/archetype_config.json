@@ -1,0 +1,94 @@
+{
+  "archetypes": [
+    {
+      "id": "ranged",
+      "label": "Ranged Attack",
+      "icon": "🏹",
+      "modes": ["league_starter", "endgame"],
+      "sub": [
+        {
+          "id": "bow",
+          "label": "Bow",
+          "sub": [
+            { "id": "bow_lightning", "label": "Lightning" },
+            { "id": "bow_cold",      "label": "Ice"       },
+            { "id": "bow_poison",    "label": "Poison"    }
+          ]
+        },
+        {
+          "id": "crossbow",
+          "label": "Crossbow",
+          "sub": [
+            { "id": "grenades", "label": "Grenades" },
+            { "id": "ammo",     "label": "Ammo"     }
+          ]
+        }
+      ],
+      "source": ["attack"],
+      "delivery": ["bow", "crossbow", "grenade"]
+    },
+    {
+      "id": "shapeshifter",
+      "label": "Shapeshifter",
+      "icon": "🐾",
+      "modes": ["league_starter", "endgame"],
+      "sub": [
+        { "id": "werewolf", "label": "Werewolf", "delivery": ["werewolf"] },
+        { "id": "wyvern",   "label": "Wyvern",   "delivery": ["wyvern"] },
+        { "id": "bear",     "label": "Bear",      "delivery": ["bear"] }
+      ],
+      "delivery": ["werewolf", "wyvern", "bear"]
+    },
+    {
+      "id": "spell",
+      "label": "Spell",
+      "icon": "✨",
+      "modes": ["league_starter", "endgame"],
+      "sub": [
+        { "id": "fire",      "label": "Fire",      "damage": ["fire"] },
+        { "id": "cold",      "label": "Cold",      "damage": ["cold"] },
+        { "id": "lightning", "label": "Lightning", "damage": ["lightning"] },
+        { "id": "chaos",     "label": "Chaos",     "damage": ["chaos"] },
+        { "id": "physical",  "label": "Physical",  "damage": ["physical"] }
+      ],
+      "source": ["spell"]
+    },
+    {
+      "id": "melee",
+      "label": "Melee",
+      "icon": "⚔️",
+      "modes": ["league_starter", "endgame"],
+      "sub": [
+        { "id": "twohanded_mace", "label": "2H Mace"      },
+        { "id": "one_shield",     "label": "1H / Shield"  },
+        { "id": "quarterstaff",   "label": "Quarterstaff" },
+        { "id": "spear",          "label": "Spear"        }
+      ],
+      "source": ["attack"]
+    },
+    {
+      "id": "minion",
+      "label": "Minion",
+      "icon": "💀",
+      "modes": ["league_starter", "endgame"],
+      "sub": [],
+      "gem_tag": "minion"
+    },
+    {
+      "id": "trigger",
+      "label": "Trigger",
+      "icon": "⚡",
+      "modes": ["endgame"],
+      "sub": [],
+      "is_variant": true
+    },
+    {
+      "id": "unique",
+      "label": "Unique Item",
+      "icon": "💎",
+      "modes": ["endgame"],
+      "sub": [],
+      "is_unique_build": true
+    }
+  ]
+}

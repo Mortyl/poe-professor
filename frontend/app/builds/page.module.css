@@ -35,7 +35,7 @@
 }
 
 .content {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 32px;
 }
@@ -402,6 +402,11 @@
 .modeBtnFate:hover {
   border-color: #7a4ab5;
   background: #0f0a14;
+}
+
+.modeBtnBrowse:hover {
+  border-color: #2a6a4a;
+  background: #091410;
 }
 
 .modeIcon {
