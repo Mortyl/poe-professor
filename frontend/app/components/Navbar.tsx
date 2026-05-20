@@ -10,21 +10,23 @@ export default function Navbar() {
   return (
     <nav className={styles.nav}>
       <Link href="/" className={styles.logo}>
-        <div className={styles.gem} />
-        PoEProfessor
+        POE<span className={styles.dot}>·</span>PROFESSOR
       </Link>
       <div className={styles.links}>
+        <Link href="/" className={`${styles.link} ${pathname === "/" ? styles.active : ""}`}>
+          Home
+        </Link>
         <Link href="/builds" className={`${styles.link} ${pathname === "/builds" ? styles.active : ""}`}>
-          Build Creator
+          Builds
         </Link>
         <Link href="/atlas" className={`${styles.link} ${pathname === "/atlas" ? styles.active : ""}`}>
-          Atlas Designer
+          Atlas
         </Link>
         <Link href="/crafting" className={`${styles.link} ${pathname === "/crafting" ? styles.active : ""}`}>
-          Crafting Architect
+          Crafting
         </Link>
         <Link href="/exile" className={`${styles.link} ${pathname === "/exile" ? styles.active : ""}`}>
-          Exile Refiner
+          Refine
         </Link>
       </div>
     </nav>

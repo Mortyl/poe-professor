@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -80,6 +80,80 @@ const ASCENDANCY_KEY: Record<string, string> = {
 const cache = new Map<string, DrawData>();
 let fetchPromise: Promise<unknown> | null = null;
 let rawData: RawData | null = null;
+
+// ── PoB sprite assets ────────────────────────────────────────────────────────
+// Loaded lazily on first canvas mount, then shared across instances.
+interface SpriteCoord { sheet: string; x: number; y: number; w: number; h: number; }
+interface PobNode { icon?: string; isAscendancyStart?: boolean; }
+interface PobTree { nodes: Record<string, PobNode>; }
+
+let spriteManifest: Record<string, SpriteCoord> | null = null;
+let nodeIconMap:    Map<number, string> | null         = null;   // nodeId → icon path (manifest key)
+let ascStartSet:    Set<number> | null                 = null;   // ids of every ascendancy entry node
+let bgImage:        HTMLImageElement | null            = null;
+const sheetImages = new Map<string, HTMLImageElement>();         // sheet filename → loaded <img>
+let assetsPromise: Promise<void> | null = null;
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload  = () => resolve(img);
+    img.onerror = () => reject(new Error(`failed to load ${src}`));
+    img.src = src;
+  });
+}
+
+function ensureSheet(name: string): HTMLImageElement | null {
+  const cached = sheetImages.get(name);
+  if (cached) return cached;
+  // Kick off load; subsequent draws will pick it up once it lands.
+  loadImage(`/images/tree/${name}`).then(img => {
+    sheetImages.set(name, img);
+  }).catch(() => {
+    // Mark as failed to avoid retry storms — store a 1x1 transparent placeholder
+    const placeholder = document.createElement("canvas") as unknown as HTMLImageElement;
+    sheetImages.set(name, placeholder);
+  });
+  return null;
+}
+
+function loadTreeAssets(): Promise<void> {
+  if (assetsPromise) return assetsPromise;
+  assetsPromise = (async () => {
+    const [manifestRes, treeRes, bg] = await Promise.all([
+      fetch("/images/tree/manifest.json").then(r => r.json()) as Promise<Record<string, SpriteCoord>>,
+      fetch("/images/tree/tree.json").then(r => r.json())     as Promise<PobTree>,
+      loadImage("/images/tree/background_1024_1024_BC7.webp").catch(() => null),
+    ]);
+    spriteManifest = manifestRes;
+    nodeIconMap = new Map();
+    ascStartSet = new Set();
+    for (const [idStr, n] of Object.entries(treeRes.nodes)) {
+      const id = parseInt(idStr, 10);
+      if (n.icon) nodeIconMap.set(id, n.icon);
+      if (n.isAscendancyStart) ascStartSet.add(id);
+    }
+    bgImage = bg ?? null;
+    // Preload sheets used by the first frame: node icon atlases + frame atlases.
+    // Lazy-load anything else (group rings, jewel sockets) on demand via ensureSheet.
+    const FIRST_FRAME_SHEETS = [
+      "skills_128_128_BC1.webp",      // notable + keystone icons
+      "skills_64_64_BC1.webp",        // small/travel node icons
+      "group-background_104_104_BC7.webp",  // Normal-node frames (PSSkillFrame*)
+      "group-background_152_156_BC7.webp",  // Notable + Jewel frames
+      "group-background_220_224_BC7.webp",  // Keystone frames
+      "group-background_160_164_BC7.webp",  // Ascendancy small frames ({Asc}FrameSmall*)
+      "group-background_208_208_BC7.webp",  // Ascendancy large frames ({Asc}FrameLarge*)
+      "group-background_528_528_BC7.webp",  // PSStartNodeBackgroundInactive (asc entry node)
+    ];
+    await Promise.all(FIRST_FRAME_SHEETS.map(name =>
+      loadImage(`/images/tree/${name}`)
+        .then(img => sheetImages.set(name, img))
+        .catch(() => undefined)
+    ));
+  })();
+  return assetsPromise;
+}
 
 function formatStat(key: string, val: number): string {
   const isPct    = key.endsWith("_+%") || key.endsWith("+%");
@@ -203,7 +277,28 @@ const NODE_STYLE: Record<number, { colour: string; r: number }> = {
   2: { colour: "#cc3030", r: 38 }, // Keystone    — red
   3: { colour: "#40aa60", r: 28 }, // JewelSocket — green
 };
+// Frame size per node type (in world units) — the outer ring around each node.
+// Sized to match PoB's in-game tree where notables are ~2× a normal node and
+// keystones ~3×. Icons render at ~62% of frame size to sit inside the ring.
+const FRAME_R: Record<number, number> = {
+  0: 28,   // Normal — small ring
+  1: 56,   // Notable — pronounced gold ring
+  2: 88,   // Keystone — biggest ring
+  3: 56,   // Jewel socket — same as notable
+};
+const ICON_FRACTION = 0.62;
 const MIN_SCREEN_R = 2;
+const MIN_FRAME_SCREEN = 6;
+
+// Frame sprite names per node type + state, matching tree.json's nodeOverlay table.
+// All these names exist in manifest.json under the group-background_* sheets.
+type FrameState = "alloc" | "path" | "unalloc";
+const FRAME_SPRITE: Record<number, Record<FrameState, string>> = {
+  0: { alloc: "PSSkillFrameActive",         path: "PSSkillFrameHighlighted",       unalloc: "PSSkillFrame" },
+  1: { alloc: "NotableFrameAllocated",      path: "NotableFrameCanAllocate",       unalloc: "NotableFrameUnallocated" },
+  2: { alloc: "KeystoneFrameAllocated",     path: "KeystoneFrameCanAllocate",      unalloc: "KeystoneFrameUnallocated" },
+  3: { alloc: "JewelFrameAllocated",        path: "JewelFrameCanAllocate",         unalloc: "JewelFrameUnallocated" },
+};
 const OPTIONAL_COLOUR = "#4ab8cc"; // teal-blue for optional nodes (node dots only)
 
 export default function PassiveTreeCanvas({
@@ -241,11 +336,24 @@ export default function PassiveTreeCanvas({
     const mainArcs  = arcs.filter(a => !ascNodes.has(a.n1) && !ascNodes.has(a.n2));
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#07070f";
+    ctx.fillStyle = "#040608";
     ctx.fillRect(0, 0, W, H);
 
     ctx.setTransform(scale, 0, 0, scale, tx, ty);
     const inv = 1 / scale;
+
+    // ── Tree background image — stretched to cover world bounds (with padding) ──
+    if (bgImage && dataRef.current) {
+      const b = dataRef.current.bounds;
+      const cx = (b.minX + b.maxX) / 2;
+      const cy = (b.minY + b.maxY) / 2;
+      const treeW = b.maxX - b.minX;
+      const treeH = b.maxY - b.minY;
+      // The radial backdrop is one image — paint it large and centered, with
+      // generous overflow so users can pan past the tree edges without seam.
+      const bgSize = Math.max(treeW, treeH) * 1.4;
+      ctx.drawImage(bgImage, cx - bgSize / 2, cy - bgSize / 2, bgSize, bgSize);
+    }
 
     const core     = highlightedSet.current;
     const optional = optionalSet.current;
@@ -261,7 +369,7 @@ export default function PassiveTreeCanvas({
       !(core.has(n1) && core.has(n2));
 
     // 1. Dim edges (neither core nor optional)
-    ctx.strokeStyle = "#2a2a4a";
+    ctx.strokeStyle = "#1a2030";
     ctx.lineWidth   = inv;
     ctx.beginPath();
     for (const l of mainLines) {
@@ -311,39 +419,58 @@ export default function PassiveTreeCanvas({
     }
     ctx.stroke();
 
-    // 4. Nodes (main tree only — ascendancy nodes rendered in separate canvas)
+    // 4. Nodes — frame ring + icon inside (PoB-style)
+    //    Order: draw frames first so connecting lines don't poke into the
+    //    centre of each node. Then icons on top of frames.
     for (const n of nodes) {
       if (n.ascendancy) continue;
       const isCore     = core.has(n.id);
       const isOptional = optional.has(n.id) && !isCore;
-      const isActive   = isCore || isOptional;
+      const state: FrameState = isCore ? "alloc" : isOptional ? "path" : "unalloc";
 
-      const style  = NODE_STYLE[n.type] ?? NODE_STYLE[0];
-      const baseR  = isActive ? style.r * 1.4 : style.r;
-      const worldR = Math.max(baseR, MIN_SCREEN_R * inv);
+      // Frame size in world units. Minimum on-screen size keeps the node legible
+      // when zoomed far out (otherwise the frame collapses to a single pixel).
+      const frameR = Math.max(
+        (FRAME_R[n.type] ?? FRAME_R[0]) / 2,
+        MIN_FRAME_SCREEN * inv,
+      );
+      const frameSize = frameR * 2;
 
-      const fillColour = isCore ? "#e8c84a" : isOptional ? OPTIONAL_COLOUR : style.colour;
-      const glowColour = isCore ? "#e8c84a" : OPTIONAL_COLOUR;
-
-      if (isActive) {
-        ctx.strokeStyle = glowColour;
-        ctx.lineWidth   = inv * 2.5;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, worldR + inv * 3, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle   = fillColour;
-        ctx.strokeStyle = "#ffffff44";
-        ctx.lineWidth   = inv;
+      // 1. Icon FIRST — frame is drawn on top to cover any spillover at edges
+      const iconPath = nodeIconMap?.get(n.id);
+      const coord    = iconPath ? spriteManifest?.[iconPath] : undefined;
+      const sheet    = coord ? sheetImages.get(coord.sheet) : undefined;
+      if (coord && sheet && sheet.width > 1) {
+        const iconSize = frameSize * ICON_FRACTION;
+        ctx.globalAlpha = isCore ? 1.0 : isOptional ? 0.95 : 0.75;
+        ctx.drawImage(
+          sheet,
+          coord.x, coord.y, coord.w, coord.h,
+          n.x - iconSize / 2, n.y - iconSize / 2, iconSize, iconSize,
+        );
+        ctx.globalAlpha = 1.0;
       } else {
-        ctx.fillStyle   = style.colour;
-        ctx.strokeStyle = style.colour + "99";
-        ctx.lineWidth   = inv;
+        // No icon? Tiny coloured dot in the centre so node is still distinguishable
+        const style = NODE_STYLE[n.type] ?? NODE_STYLE[0];
+        ctx.fillStyle = isCore ? "#e8c84a" : isOptional ? OPTIONAL_COLOUR : style.colour;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, Math.max(2 * inv, frameR * 0.25), 0, Math.PI * 2);
+        ctx.fill();
+        if (coord) ensureSheet(coord.sheet);
       }
 
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, worldR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      // Frame sprite overlay disabled on the main tree for now — keeping the
+      // bare icon look. The ascendancy canvas still uses frames.
+      // (Was: drawImage(FRAME_SPRITE[n.type]?.[state] ...) here.)
+
+      // Optional path (teal) — overlay a subtle teal ring on top of the icon
+      if (isOptional) {
+        ctx.strokeStyle = OPTIONAL_COLOUR;
+        ctx.lineWidth   = inv * 2;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, frameR * 0.9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
 
@@ -387,17 +514,23 @@ export default function PassiveTreeCanvas({
     minScaleRef.current = approxScale;
     camRef.current = { tx: W / 2, ty: H / 2, scale: approxScale };
 
+    // Kick off PoB-asset preload in parallel with tree data fetch. Once it
+    // resolves we redraw — the canvas swaps from flat circles to real sprites.
+    loadTreeAssets().then(() => {
+      if (dataRef.current) draw();
+    });
+
     getData(className).then(d => {
       dataRef.current = d;
       const { minX, minY, maxX, maxY } = d.bounds;
       const treeW = maxX - minX;
       const treeH = maxY - minY;
       const fitScale = Math.min(W / treeW, H / treeH) * 0.95;
-      maxScaleRef.current = fitScale * 6; // max zoom = 6× the fit-to-screen scale
+      maxScaleRef.current = fitScale * 2.5; // max zoom = 2.5× the fit-to-screen scale
       // minScale is set after startScale is computed below
 
       // Center on the bounding box of highlighted nodes if any exist,
-      // and start zoomed to fit that box. Falls back to full tree centre/scale.
+      // and start zoomed in (2× fit) so the tree feels readable on first load.
       const allHighlighted = [...highlightedSet.current, ...optionalSet.current];
       const nodeById = new Map(d.nodes.map(n => [n.id, n]));
       const hNodes = allHighlighted
@@ -422,7 +555,7 @@ export default function PassiveTreeCanvas({
       } else {
         focusX = (minX + maxX) / 2;
         focusY = (minY + maxY) / 2;
-        startScale = fitScale;
+        startScale = fitScale * 2;  // start zoomed in 2× so nodes are readable
       }
 
       minScaleRef.current = startScale; // can't zoom out past the starting view
@@ -490,7 +623,7 @@ export default function PassiveTreeCanvas({
         ref={canvasRef}
         width={860}
         height={540}
-        style={{ display: "block", width: "100%", height: "auto", cursor: dragRef.current ? "grabbing" : "grab", borderRadius: "4px", border: "1px solid #2a2a3a" }}
+        style={{ display: "block", width: "100%", height: "auto", cursor: dragRef.current ? "grabbing" : "grab", borderRadius: "4px", border: "1px solid #1a2030" }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={stopDrag}
@@ -544,6 +677,33 @@ const ASC_TIER_COLOURS = [
   "#cc4444", // tier 4 (rank 7–8) — red
 ];
 
+// Frame world-radii for ascendancy nodes — sized to match PoB where notables
+// and keystones almost touch their neighbours rather than floating apart.
+// Roughly 1.7× the main-tree node sizes since the asc canvas is much smaller
+// and nodes need to dominate the class portrait.
+const ASC_FRAME_R: Record<number, number> = {
+  0: 90,    // small/travel — sized so connecting lines have visible mid-section
+  1: 160,   // notable
+  2: 220,   // keystone (the red endpoint)
+  3: 160,   // jewel
+};
+const ASC_ICON_FRACTION = 0.62;
+
+// Module cache for per-ascendancy background portraits.
+const ascBgCache = new Map<string, HTMLImageElement>();
+function loadAscBg(ascendancy: string): HTMLImageElement | null {
+  const slug = ascendancy.toLowerCase().replace(/['']/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const cached = ascBgCache.get(slug);
+  if (cached) return cached;
+  loadImage(`/images/ascendancies/${slug}.webp`)
+    .then(img => ascBgCache.set(slug, img))
+    .catch(() => {
+      const placeholder = document.createElement("canvas") as unknown as HTMLImageElement;
+      ascBgCache.set(slug, placeholder);
+    });
+  return null;
+}
+
 export function AscendancyCanvas({
   className,
   ascendancy,
@@ -591,10 +751,29 @@ export function AscendancyCanvas({
     const treeNodes  = nodes.filter(n => n.ascendancy === treeKey);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#07070f";
+    ctx.fillStyle = "#040608";
     ctx.fillRect(0, 0, W, H);
     ctx.setTransform(scale, 0, 0, scale, tx, ty);
     const inv = 1 / scale;
+
+    // ── Ascendancy class portrait background ────────────────────────────
+    // In PoB the cluster sits inside ~35-40% of the bg circle (character art
+    // dominates). Size the bg image to ~2.8× the node cluster's max dimension
+    // so the portrait reads as the dominant element, not just a tight halo.
+    const ascBg = loadAscBg(ascendancy);
+    if (ascBg && ascBg.width > 1 && treeNodes.length) {
+      let bminX = Infinity, bminY = Infinity, bmaxX = -Infinity, bmaxY = -Infinity;
+      for (const n of treeNodes) {
+        if (n.x < bminX) bminX = n.x;
+        if (n.y < bminY) bminY = n.y;
+        if (n.x > bmaxX) bmaxX = n.x;
+        if (n.y > bmaxY) bmaxY = n.y;
+      }
+      const bcx = (bminX + bmaxX) / 2;
+      const bcy = (bminY + bmaxY) / 2;
+      const bgSize = Math.max(bmaxX - bminX, bmaxY - bminY) * 2.4;
+      ctx.drawImage(ascBg, bcx - bgSize / 2, bcy - bgSize / 2, bgSize, bgSize);
+    }
 
     const isCoreEdge     = (n1: number, n2: number) => core.has(n1) && core.has(n2);
     const isHighlighted  = (n: number) => core.has(n) || optional.has(n);
@@ -603,24 +782,37 @@ export function AscendancyCanvas({
       (optional.has(n1) || optional.has(n2)) &&
       !(core.has(n1) && core.has(n2));
 
-    // Dim edges
-    ctx.strokeStyle = "#2a2a4a"; ctx.lineWidth = inv;
+    // Edges between ascendancy nodes — coloured by tier-pair when both endpoints
+    // have a tier colour, so the user can see at a glance which path connects
+    // each ranked pick (gold = tier 1, green = tier 2, blue = tier 3, red = tier 4).
+
+    const tierMapEdges = ascTierMap.current;
+    const sameTierEdge = (n1: number, n2: number): string | null => {
+      const t1 = tierMapEdges.get(n1);
+      const t2 = tierMapEdges.get(n2);
+      return (t1 && t1 === t2) ? t1 : null;
+    };
+
+    // 1. Dim (unallocated, no tier) edges
+    ctx.strokeStyle = "#7a8090"; ctx.lineWidth = inv * 4;
     ctx.beginPath();
     for (const l of ascLines) {
       if (isCoreEdge(l.n1, l.n2) || isOptionalEdge(l.n1, l.n2)) continue;
+      if (sameTierEdge(l.n1, l.n2)) continue;
       ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
     }
     ctx.stroke();
     ctx.beginPath();
     for (const a of ascArcs) {
       if (isCoreEdge(a.n1, a.n2) || isOptionalEdge(a.n1, a.n2)) continue;
+      if (sameTierEdge(a.n1, a.n2)) continue;
       ctx.moveTo(a.cx + a.r * Math.cos(a.sa), a.cy + a.r * Math.sin(a.sa));
       ctx.arc(a.cx, a.cy, a.r, a.sa, a.ea, false);
     }
     ctx.stroke();
 
-    // Optional edges — teal
-    ctx.strokeStyle = OPTIONAL_COLOUR; ctx.lineWidth = inv * 2;
+    // 2. Optional edges — teal
+    ctx.strokeStyle = OPTIONAL_COLOUR; ctx.lineWidth = inv * 6;
     ctx.beginPath();
     for (const l of ascLines) {
       if (!isOptionalEdge(l.n1, l.n2)) continue;
@@ -628,42 +820,161 @@ export function AscendancyCanvas({
     }
     ctx.stroke();
 
-    // Core edges — gold
-    ctx.strokeStyle = "#e8c84a"; ctx.lineWidth = inv * 2;
+    // 3. Core (mandatory, no tier) edges — gold
+    ctx.strokeStyle = "#e8c84a"; ctx.lineWidth = inv * 6;
     ctx.beginPath();
     for (const l of ascLines) {
       if (!isCoreEdge(l.n1, l.n2)) continue;
+      if (sameTierEdge(l.n1, l.n2)) continue;  // tier edges drawn separately
       ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2);
     }
     ctx.stroke();
 
-    // Nodes
-    const tierMap    = ascTierMap.current;
-    const endpoints  = ascEndpointSet.current;
+    // 4. Same-tier edges — coloured by tier (gold/green/blue/red), one stroke per tier
+    const tierEdgeBuckets = new Map<string, { lines: Line[]; arcs: Arc[] }>();
+    for (const l of ascLines) {
+      const col = sameTierEdge(l.n1, l.n2);
+      if (!col) continue;
+      const b = tierEdgeBuckets.get(col) ?? { lines: [], arcs: [] };
+      b.lines.push(l);
+      tierEdgeBuckets.set(col, b);
+    }
+    for (const a of ascArcs) {
+      const col = sameTierEdge(a.n1, a.n2);
+      if (!col) continue;
+      const b = tierEdgeBuckets.get(col) ?? { lines: [], arcs: [] };
+      b.arcs.push(a);
+      tierEdgeBuckets.set(col, b);
+    }
+    for (const [col, { lines: ls, arcs: as }] of tierEdgeBuckets) {
+      ctx.strokeStyle = col; ctx.lineWidth = inv * 6;
+      ctx.beginPath();
+      for (const l of ls) { ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); }
+      ctx.stroke();
+      ctx.beginPath();
+      for (const a of as) {
+        ctx.moveTo(a.cx + a.r * Math.cos(a.sa), a.cy + a.r * Math.sin(a.sa));
+        ctx.arc(a.cx, a.cy, a.r, a.sa, a.ea, false);
+      }
+      ctx.stroke();
+    }
+
+    // Nodes — ascendancy-specific frame sprite + icon (PoB style)
+    const tierMap   = ascTierMap.current;
+    const endpoints = ascEndpointSet.current;
+    // PoB stores per-ascendancy frame sprite names like "DeadeyeFrameSmallNormal".
+    // Endpoint notables use the Large variant; everything else uses Small.
+    const ascSpritePrefix = ascendancy;
+    const ascFrameName = (isEndpoint: boolean, state: FrameState) => {
+      const size = isEndpoint ? "Large" : "Small";
+      const suffix = state === "alloc" ? "Allocated" : state === "path" ? "CanAllocate" : "Normal";
+      return `${ascSpritePrefix}Frame${size}${suffix}`;
+    };
+
     for (const n of treeNodes) {
       const isCore     = core.has(n.id);
       const isOptional = optional.has(n.id) && !isCore;
-      const tierColour = tierMap.get(n.id);          // paid asc tier colour, if any
+      const tierColour = tierMap.get(n.id);
       const isActive   = isCore || isOptional || !!tierColour;
-      const isEndpoint = endpoints.has(n.id);        // endpoint notable in a tier pair
+      const isEndpoint = endpoints.has(n.id);
+      const isStart    = ascStartSet?.has(n.id) ?? false;
+      const state: FrameState = (isCore || tierColour) ? "alloc" : isOptional ? "path" : "unalloc";
 
-      const style  = NODE_STYLE[n.type] ?? NODE_STYLE[0];
-      // Endpoint notables always render at notable radius regardless of stored type
-      const effectiveR = isEndpoint ? NODE_STYLE[1].r : style.r;
-      const baseR  = isActive ? effectiveR * 1.4 : effectiveR;
-      const worldR = Math.max(baseR, MIN_SCREEN_R * inv);
-
-      const fillColour = tierColour ?? (isCore ? "#e8c84a" : isOptional ? OPTIONAL_COLOUR : style.colour);
-      const glowColour = tierColour ?? (isCore ? "#e8c84a" : OPTIONAL_COLOUR);
-
-      if (isActive) {
-        ctx.strokeStyle = glowColour; ctx.lineWidth = inv * 2.5;
-        ctx.beginPath(); ctx.arc(n.x, n.y, worldR + inv * 3, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = fillColour; ctx.strokeStyle = "#ffffff44"; ctx.lineWidth = inv;
-      } else {
-        ctx.fillStyle = style.colour; ctx.strokeStyle = style.colour + "99"; ctx.lineWidth = inv;
+      // ── Ascendancy entry node — dark socket + icon on top
+      if (isStart) {
+        const startSpriteName = "PSStartNodeBackgroundInactive";
+        const startCoord = spriteManifest?.[startSpriteName];
+        const startSheet = startCoord ? sheetImages.get(startCoord.sheet) : undefined;
+        // Smaller than before so connecting lines aren't swallowed by the socket
+        const startR = Math.max(130, MIN_FRAME_SCREEN * inv);
+        if (startCoord && startSheet && startSheet.width > 1) {
+          ctx.drawImage(
+            startSheet,
+            startCoord.x, startCoord.y, startCoord.w, startCoord.h,
+            n.x - startR, n.y - startR, startR * 2, startR * 2,
+          );
+        } else if (startCoord) {
+          ensureSheet(startCoord.sheet);
+        }
+        // Overlay the entry node's icon (the ascendancy emblem) on top of the socket
+        const sIconPath = nodeIconMap?.get(n.id);
+        const sCoord    = sIconPath ? spriteManifest?.[sIconPath] : undefined;
+        const sSheet    = sCoord ? sheetImages.get(sCoord.sheet) : undefined;
+        if (sCoord && sSheet && sSheet.width > 1) {
+          const iconR = startR * 0.55;
+          ctx.drawImage(
+            sSheet,
+            sCoord.x, sCoord.y, sCoord.w, sCoord.h,
+            n.x - iconR, n.y - iconR, iconR * 2, iconR * 2,
+          );
+        } else if (sCoord) {
+          ensureSheet(sCoord.sheet);
+        }
+        continue;  // skip the regular frame+icon render for start nodes
       }
-      ctx.beginPath(); ctx.arc(n.x, n.y, worldR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      // Frame size — endpoint notables get the larger frame
+      const baseR = isEndpoint ? ASC_FRAME_R[1] : (ASC_FRAME_R[n.type] ?? ASC_FRAME_R[0]);
+      const frameR = Math.max(baseR / 2, MIN_FRAME_SCREEN * inv);
+      const frameSize = frameR * 2;
+
+      // 1. Icon FIRST so the frame border overlays any spillover at the edges
+      const iconPath = nodeIconMap?.get(n.id);
+      const coord    = iconPath ? spriteManifest?.[iconPath] : undefined;
+      const sheet    = coord ? sheetImages.get(coord.sheet) : undefined;
+      if (coord && sheet && sheet.width > 1) {
+        const iconSize = frameSize * ASC_ICON_FRACTION;
+        ctx.globalAlpha = isActive ? 1.0 : 0.75;
+        ctx.drawImage(
+          sheet,
+          coord.x, coord.y, coord.w, coord.h,
+          n.x - iconSize / 2, n.y - iconSize / 2, iconSize, iconSize,
+        );
+        ctx.globalAlpha = 1.0;
+      } else {
+        const style = NODE_STYLE[n.type] ?? NODE_STYLE[0];
+        ctx.fillStyle = tierColour ?? (isCore ? "#e8c84a" : isOptional ? OPTIONAL_COLOUR : style.colour);
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, Math.max(2 * inv, frameR * 0.25), 0, Math.PI * 2);
+        ctx.fill();
+        if (coord) ensureSheet(coord.sheet);
+      }
+
+      // 2. Frame on top — its ring border covers any icon edge that extends out
+      const frameKey   = ascFrameName(isEndpoint, state);
+      const frameCoord = spriteManifest?.[frameKey];
+      const frameSheet = frameCoord ? sheetImages.get(frameCoord.sheet) : undefined;
+      if (frameCoord && frameSheet && frameSheet.width > 1) {
+        ctx.drawImage(
+          frameSheet,
+          frameCoord.x, frameCoord.y, frameCoord.w, frameCoord.h,
+          n.x - frameR, n.y - frameR, frameSize, frameSize,
+        );
+      } else {
+        if (frameCoord) ensureSheet(frameCoord.sheet);
+        // Fall back to the generic node frame from the main tree
+        const fallbackName = FRAME_SPRITE[isEndpoint ? 1 : n.type]?.[state] ?? FRAME_SPRITE[0][state];
+        const fc = spriteManifest?.[fallbackName];
+        const fs = fc ? sheetImages.get(fc.sheet) : undefined;
+        if (fc && fs && fs.width > 1) {
+          ctx.drawImage(fs, fc.x, fc.y, fc.w, fc.h, n.x - frameR, n.y - frameR, frameSize, frameSize);
+        }
+      }
+
+      // 3. Tier-colour overlay ring (gold / green / blue / red) on top of frame
+      if (tierColour) {
+        ctx.strokeStyle = tierColour;
+        ctx.lineWidth   = inv * 3;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, frameR * 1.05, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (isOptional) {
+        ctx.strokeStyle = OPTIONAL_COLOUR;
+        ctx.lineWidth   = inv * 2;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, frameR * 0.9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
 
@@ -712,13 +1023,15 @@ export function AscendancyCanvas({
         if (n.x < minX) minX = n.x; if (n.y < minY) minY = n.y;
         if (n.x > maxX) maxX = n.x; if (n.y > maxY) maxY = n.y;
       }
-      const pad = 200;
-      const treeW = maxX - minX + pad * 2;
-      const treeH = maxY - minY + pad * 2;
+      // Match PoB's framing: cluster fills ~55-60% of the canvas with the class
+      // portrait dominant behind it. View 1.8× cluster (so cluster reads big),
+      // bg image sized 2.4× cluster so it overflows canvas edges for natural fade.
+      const clusterMax = Math.max(maxX - minX, maxY - minY);
+      const viewDim = clusterMax * 1.8;
       const W = canvas.width;
       const H = canvas.height;
 
-      const fitScale = Math.min(W / treeW, H / treeH) * 0.9;
+      const fitScale = Math.min(W, H) / viewDim;
       minScaleRef.current = fitScale;
       maxScaleRef.current = fitScale * 2; // max zoom = 2× the fit-to-screen scale
       camRef.current = {
@@ -776,7 +1089,7 @@ export function AscendancyCanvas({
         ref={canvasRef}
         width={380}
         height={380}
-        style={{ display: "block", width: "380px", height: "380px", cursor: "grab", borderRadius: "4px", border: "1px solid #2a2a3a" }}
+        style={{ display: "block", width: "380px", height: "380px", cursor: "grab", borderRadius: "4px", border: "1px solid #1a2030" }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={stopDrag}

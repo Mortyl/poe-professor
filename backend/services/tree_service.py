@@ -76,26 +76,32 @@ def _load_tree() -> dict:
 
 
 
+# Wizard precedence — endgame full-meta > league-starter full-meta > exotic (sub-meta sketch)
+PASSIVE_EXP_PRECEDENCE = ("endgame", "league_starter", "exotic")
+
+
 def _load_passive_report(ascendancy: str, skill: str = "") -> dict | None:
     """Load passive heatmap — per-combo first, fall back to legacy filenames.
 
-    Filename precedence (most specific → most legacy):
-      1. {skill}_{ascendancy}_league_starter_passives.json — current per-combo format
-      2. {skill}_league_starter_passives.json              — legacy skill-only (polluted
+    Each experience level is tried in PASSIVE_EXP_PRECEDENCE order. Within an
+    exp level, the filename precedence is most-specific → most-legacy:
+      1. {skill}_{ascendancy}_{exp}_passives.json — current per-combo format
+      2. {skill}_{exp}_passives.json              — legacy skill-only (polluted
          across ascendancies; here for back-compat until all combos re-analysed)
-      3. {ascendancy}_league_starter_passives.json         — ancient ascendancy-only fallback
+      3. {ascendancy}_{exp}_passives.json         — ancient ascendancy-only fallback
     """
     asc_slug = ascendancy.lower()
-    candidates = []
-    if skill:
-        skill_slug = skill.lower().replace(" ", "_")
-        candidates.append(os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_league_starter_passives.json"))
-        candidates.append(os.path.join(REPORT_DIR, f"{skill_slug}_league_starter_passives.json"))
-    candidates.append(os.path.join(REPORT_DIR, f"{asc_slug}_league_starter_passives.json"))
-    for path in candidates:
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                return json.load(f)
+    skill_slug = skill.lower().replace(" ", "_") if skill else ""
+    for exp in PASSIVE_EXP_PRECEDENCE:
+        candidates = []
+        if skill_slug:
+            candidates.append(os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_{exp}_passives.json"))
+            candidates.append(os.path.join(REPORT_DIR, f"{skill_slug}_{exp}_passives.json"))
+        candidates.append(os.path.join(REPORT_DIR, f"{asc_slug}_{exp}_passives.json"))
+        for path in candidates:
+            if os.path.exists(path):
+                with open(path, encoding="utf-8") as f:
+                    return json.load(f)
     return None
 
 
@@ -624,7 +630,19 @@ def recommend_nodes_branched(
     if not report or report.get("builds_analysed", 0) < 10:
         return {"core": [], "optional": [], "asc_nodes": [], "connectors": [], "branches": [], "builds_analysed": 0}
 
-    start_id = int(starting_nodes.get(class_name, 0))
+    # Resolve start node: direct lookup, then PoE2-name translation, then derive
+    # from ascendancy (some callers — e.g. /builds browse flow — don't carry the
+    # class name through; without a start the stitcher can't run and we end up
+    # with notables-only and no travel-node connections).
+    start_id = int(
+        starting_nodes.get(class_name)
+        or starting_nodes.get(CLASS_START_MAP.get(class_name, ""), 0)
+    )
+    if not start_id:
+        tree_tag = ASCENDANCY_TREE_MAP.get(ascendancy, "")
+        poe2_class = "".join(c for c in tree_tag if not c.isdigit())
+        derived = CLASS_START_MAP.get(poe2_class, "")
+        start_id = int(starting_nodes.get(derived, 0))
 
     # Rule 4: only target Notable (1), Keystone (2), and Jewel Socket (3/4) nodes
     # as stitching destinations. Type 0 travel/attribute nodes are mandatory
@@ -654,6 +672,8 @@ def recommend_nodes_branched(
     if not popular_ids or not start_id:
         return {
             "core": popular_ids,
+            "optional": [],
+            "asc_nodes": [],
             "connectors": [],
             "branches": [],
             "builds_analysed": report.get("builds_analysed", 0),

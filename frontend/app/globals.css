@@ -1,21 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+/* Fonts are loaded via <link> in app/layout.tsx — Turbopack strips @import
+   from CSS module / globals files, leaving every Cinzel/EB Garamond reference
+   to fall back to plain serif. */
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #0d0d14;
-  --bg-card: #111118;
-  --border: #2a2a3a;
-  --border-hover: #4a4a6a;
-  --gold: #c8963c;
-  --gold-light: #e8b84a;
-  --gold-dark: #8b5e1a;
-  --text-primary: #e8d4a8;
-  --text-secondary: #c8b89a;
-  --text-muted: #5a5a7a;
-  --text-faint: #3a3a5a;
-  --font-display: 'Cinzel', serif;
-  --font-body: 'Rajdhani', sans-serif;
-  --font-mono: 'Share Tech Mono', monospace;
+  /* ── Obsidian palette ──────────────────────────────────────────────────
+     Black-glass bank vault with cool blue undertone, warm brass accent, and
+     a deep garnet jewel for separator dots. Mockup source: homepage_obsidian_dots.html. */
+  --bg-deep:        #040608;
+  --surface:        #0c1018;
+  --surface-2:      #161c28;
+  --surface-3:      #1e2638;
+
+  --amber:          #d4b078;
+  --amber-bright:   #f0d098;
+  --amber-dim:      #826838;
+
+  --blood:          #a02830;     /* garnet jewel dot */
+
+  --text:           #d8d4c8;
+  --text-dim:       #7a8090;
+  --text-faint:     #3a4050;
+
+  --line:           #1a2030;
+
+  /* ── Legacy aliases — older module.css files reference these names ──── */
+  --bg-primary:     var(--bg-deep);
+  --bg-secondary:   var(--surface);
+  --bg-card:        var(--surface);
+  --border:         var(--line);
+  --border-hover:   var(--amber-dim);
+  --gold:           var(--amber);
+  --gold-light:     var(--amber-bright);
+  --gold-dark:      var(--amber-dim);
+  --text-primary:   var(--text);
+  --text-secondary: var(--text-dim);
+  --text-muted:     var(--text-dim);
+
+  /* Fonts — Cinzel for display/labels, EB Garamond for serif body, Rajdhani
+     for sans body, Share Tech Mono for metadata stamps. */
+  --font-display:   'Cinzel', serif;
+  --font-serif:     'EB Garamond', serif;
+  --font-body:      'Rajdhani', sans-serif;
+  --font-mono:      'Share Tech Mono', monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,8 +49,11 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg-primary);
-  color: var(--text-secondary);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(212, 176, 120, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(74, 100, 140, 0.05) 0%, transparent 40%),
+    var(--bg-deep);
+  color: var(--text);
   font-family: var(--font-body);
   min-height: 100vh;
 }
@@ -33,10 +62,10 @@ a { color: inherit; text-decoration: none; }
 
 select {
   appearance: none;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 2px;
-  color: var(--text-primary);
+  color: var(--text);
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
@@ -46,7 +75,7 @@ select {
   transition: border-color 0.15s;
 }
 
-select:focus { border-color: var(--gold); }
+select:focus { border-color: var(--amber-dim); }
 
 button {
   cursor: pointer;
@@ -57,10 +86,10 @@ button {
 }
 
 input {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 2px;
-  color: var(--text-primary);
+  color: var(--text);
   font-family: var(--font-body);
   font-size: 14px;
   padding: 10px 14px;
@@ -69,9 +98,9 @@ input {
   transition: border-color 0.15s;
 }
 
-input:focus { border-color: var(--gold); }
+input:focus { border-color: var(--amber-dim); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--amber-dim); }

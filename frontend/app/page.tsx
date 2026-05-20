@@ -16,6 +16,73 @@ const COMPANIONS = [
   },
 ];
 
+interface Tool {
+  href: string;
+  icon: string;
+  name: string;
+  desc: string;
+  cta: string;
+}
+
+const TOOLS: Tool[] = [
+  {
+    href: "/builds",
+    icon: "⚔️",
+    name: "Build Creator",
+    desc: "Generate an AI-powered build guide. Choose class, ascendancy, weapon and skill — or let fate spin the wheel for something unexpected.",
+    cta: "Create a build",
+  },
+  {
+    href: "/atlas",
+    icon: "🗺️",
+    name: "Atlas Designer",
+    desc: "Choose an endgame strategy and receive a guided Atlas tree with content recommendations tailored to the way you wish to farm.",
+    cta: "Design strategy",
+  },
+  {
+    href: "/crafting",
+    icon: "🔨",
+    name: "Crafting Architect",
+    desc: "Step-by-step crafting plans for the item you desire. Bench, essence, expedition, and every method beyond — cheapest to most guaranteed.",
+    cta: "Start crafting",
+  },
+  {
+    href: "/exile",
+    icon: "🧙",
+    name: "Exile Refiner",
+    desc: "Import your character and I will analyse your gear, passive tree and gems — then suggest exactly how to improve.",
+    cta: "Refine character",
+  },
+];
+
+interface Featured {
+  href: string;
+  tag: string;
+  title: string;
+  blurb: string;
+}
+
+const FEATURED: Featured[] = [
+  {
+    href: "/builds",
+    tag: "League Starter",
+    title: "Best three builds to start Fate of the Vaal",
+    blurb: "Hand-picked combos that level smoothly, scale into mapping, and reach endgame on a humble purse.",
+  },
+  {
+    href: "/builds",
+    tag: "Endgame",
+    title: "Builds that conquer all content",
+    blurb: "Versatile setups that handle mapping, bossing, delve and the deepest corruptions of the Atlas.",
+  },
+  {
+    href: "/builds",
+    tag: "Defensive",
+    title: "For those who play but one life",
+    blurb: "Layered defenses against the cruelty of Wraeclast. Tanky, careful, hard to kill.",
+  },
+];
+
 export default function Home() {
   const [companion, setCompanion] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -38,11 +105,9 @@ export default function Home() {
     return (
       <div className={styles.splash}>
         <div className={styles.splashInner}>
-          <p className={styles.eyebrow}>Path of Exile 2 · Companion Tool</p>
+          <Flourish />
           <h1 className={styles.splashTitle}>Choose Your Companion</h1>
-          <p className={styles.splashSub}>
-            Your companion will guide you through the world of Wraeclast.
-          </p>
+          <p className={styles.splashSub}>Your companion will guide you through the world of Wraeclast.</p>
           <div className={styles.companionGrid}>
             {COMPANIONS.map(c => (
               <button key={c.id} className={styles.companionCard} onClick={() => chooseCompanion(c.id)}>
@@ -52,7 +117,7 @@ export default function Home() {
                 <div className={styles.companionName}>{c.name}</div>
                 <div className={styles.companionRole}>{c.role}</div>
                 <div className={styles.companionDesc}>{c.desc}</div>
-                <div className={styles.companionCta}>Select Companion →</div>
+                <div className={styles.companionCta}>◆ Select companion →</div>
               </button>
             ))}
           </div>
@@ -65,62 +130,71 @@ export default function Home() {
     <>
       <Navbar />
       <main className={styles.main}>
-        <section className={styles.hero}>
-          <div className={styles.heroInner}>
-            <p className={styles.eyebrow}>Path of Exile 2 · Companion Tool</p>
+        <div className={styles.container}>
+
+          <header className={styles.hero}>
+            <Flourish />
             <h1 className={styles.heroTitle}>
-              Welcome to <span>PoEProfessor</span>
+              POE<span className={styles.heroDot}>·</span>PROFESSOR
             </h1>
-            <p className={styles.heroSub}>What troubles you today, Exile?</p>
-          </div>
-        </section>
+            <p className={styles.heroSubtitle}>
+              An AI-bound companion for the exiles of Path of Exile 2 — real player data, expert-curated guides, and tools for every part of the game.
+            </p>
+          </header>
 
-        <section className={styles.cards}>
-          <div className={styles.cardRow}>
-            <Link href="/builds" className={`${styles.card} ${styles.cardGold}`}>
-              <div className={styles.cardIcon}>⚔️</div>
-              <h2 className={styles.cardTitle}>Build Creator</h2>
-              <p className={styles.cardDesc}>
-                Generate an AI-powered build guide. Choose your class, ascendancy, weapon and skill — or spin the wheel for something unexpected.
-              </p>
-              <span className={styles.cardCta}>Create a Build →</span>
-            </Link>
-
-            <Link href="/atlas" className={`${styles.card} ${styles.cardBlue}`}>
-              <div className={styles.cardIcon}>🗺️</div>
-              <h2 className={styles.cardTitle}>Atlas Designer</h2>
-              <p className={styles.cardDesc}>
-                Tell me what you want to farm — currency, equipment, bosses — and I will generate the optimal atlas passive strategy to get you there.
-              </p>
-              <span className={styles.cardCta}>Design Strategy →</span>
-            </Link>
+          <SectionHeader>Tools</SectionHeader>
+          <div className={styles.toolGrid}>
+            {TOOLS.map(t => (
+              <Link key={t.href} href={t.href} className={styles.toolCard}>
+                <div className={styles.toolIcon}>{t.icon}</div>
+                <div className={styles.toolName}>{t.name}</div>
+                <div className={styles.toolDesc}>{t.desc}</div>
+                <div className={styles.toolCta}>{t.cta}</div>
+              </Link>
+            ))}
           </div>
 
-          <div className={styles.cardRow}>
-            <Link href="/crafting" className={`${styles.card} ${styles.cardGreen}`}>
-              <div className={styles.cardIcon}>🔨</div>
-              <h2 className={styles.cardTitle}>Crafting Architect</h2>
-              <p className={styles.cardDesc}>
-                Paste an item and describe your target mod. I will outline the best crafting methods from cheapest to most guaranteed.
-              </p>
-              <span className={styles.cardCta}>Start Crafting →</span>
-            </Link>
-
-            <Link href="/exile" className={`${styles.card} ${styles.cardPurple}`}>
-              <div className={styles.cardIcon}>🧙</div>
-              <h2 className={styles.cardTitle}>Exile Refiner</h2>
-              <p className={styles.cardDesc}>
-                Import your character and I will analyse your gear, passive tree and gems — then suggest exactly how to improve.
-              </p>
-              <span className={styles.cardCta}>Refine Character →</span>
-            </Link>
+          <SectionHeader>Featured this league</SectionHeader>
+          <div className={styles.featuredGrid}>
+            {FEATURED.map(f => (
+              <Link key={f.title} href={f.href} className={styles.featuredCard}>
+                <span className={styles.featuredTag}>{f.tag}</span>
+                <div className={styles.featuredTitle}>{f.title}</div>
+                <div className={styles.featuredBlurb}>{f.blurb}</div>
+              </Link>
+            ))}
           </div>
-        </section>
+
+          <div className={styles.seeAll}>
+            <Link href="/builds">All featured picks →</Link>
+          </div>
+
+        </div>
 
         <footer className={styles.footer}>
           <p>PoEProfessor is not affiliated with or endorsed by Grinding Gear Games.</p>
         </footer>
       </main>
     </>
+  );
+}
+
+function Flourish() {
+  return (
+    <div className={styles.flourish}>
+      <span className={styles.flourishLine}></span>
+      <span className={styles.flourishDiamond}></span>
+      <span className={`${styles.flourishDiamond} ${styles.flourishCenter}`}></span>
+      <span className={styles.flourishDiamond}></span>
+      <span className={styles.flourishLine}></span>
+    </div>
+  );
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className={styles.sectionHeader}>
+      <h2 className={styles.sectionTitle}>{children}</h2>
+    </div>
   );
 }

@@ -22,13 +22,17 @@ POB_DIR    = os.path.join(os.path.dirname(__file__), "pob_codes")
 REPORT_DIR = os.path.join(POB_DIR, "reports")
 
 LEAGUE_STARTER_SNAPSHOTS = {"day-1", "day-2", "day-3", "day-4", "day-5", "latest"}
+# Exotic mode pools the wide day-4..week-4 window for low-builds combos
+EXOTIC_SNAPSHOTS = {"day-4", "day-5", "day-6", "week-1", "week-2", "week-3", "week-4"}
 
 
 def snapshot_matches(snapshot: str, experience_level: str) -> bool:
     if experience_level == "league_starter":
         return snapshot in LEAGUE_STARTER_SNAPSHOTS
-    else:
-        return snapshot not in LEAGUE_STARTER_SNAPSHOTS
+    if experience_level == "exotic":
+        return snapshot in EXOTIC_SNAPSHOTS
+    # endgame — anything not league_starter (week-2..week-6 typically)
+    return snapshot not in LEAGUE_STARTER_SNAPSHOTS
 
 
 def decode_pob(code: str) -> bytes | None:
@@ -137,7 +141,7 @@ def main():
                         help="Unique item name — analyse builds scraped with --item. "
                              "Overrides --skill/--ascendancy.")
     parser.add_argument("--experience-level", default="league_starter",
-                        choices=["league_starter", "endgame"])
+                        choices=["league_starter", "endgame", "exotic"])
     parser.add_argument("--max-skills",       type=int, default=9,
                         help="Max active skills to include in report (default 9)")
     parser.add_argument("--max-supports",     type=int, default=6,
@@ -147,7 +151,11 @@ def main():
     args = parser.parse_args()
 
     exp = args.experience_level
-    snapshot_label = "days 1-14" if exp == "league_starter" else "week 3+"
+    snapshot_label = (
+        "days 1-14" if exp == "league_starter"
+        else "day-4 → week-4 (exotic pool)" if exp == "exotic"
+        else "week 3+"
+    )
 
     label = args.item if args.item else f"{args.skill}{' + ' + args.variant_skill if args.variant_skill else ''} / {args.ascendancy}"
     print(f"Loading [{exp}] builds for {label}...")

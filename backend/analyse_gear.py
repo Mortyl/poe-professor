@@ -27,6 +27,16 @@ REPORT_DIR = os.path.join(POB_DIR, "reports")
 # Which snapshots count for each experience level
 LEAGUE_STARTER_SNAPSHOTS = {"day-1", "day-2", "day-3", "day-4", "day-5", "latest"}
 ENDGAME_SNAPSHOTS        = {"week-1", "week-2", "week-3", "week-4", "week-5", "week-6"}
+# Exotic mode pools the wide day-4..week-4 window for low-builds combos
+EXOTIC_SNAPSHOTS         = {"day-4", "day-5", "day-6", "week-1", "week-2", "week-3", "week-4"}
+
+
+def _snapshots_for(experience_level: str) -> set[str]:
+    if experience_level == "exotic":
+        return EXOTIC_SNAPSHOTS
+    if experience_level == "endgame":
+        return ENDGAME_SNAPSHOTS
+    return LEAGUE_STARTER_SNAPSHOTS
 
 # Slots we care about — skip swap weapon set and flasks
 TARGET_SLOTS = [
@@ -395,7 +405,7 @@ def analyse(skill: str, ascendancy: str, experience_level: str,
         slug = f"{skill.lower().replace(' ', '_')}_{variant_slug_part}_{ascendancy.lower()}_"
     else:
         slug = f"{skill.lower().replace(' ', '_')}_{ascendancy.lower()}_"
-    snapshots = LEAGUE_STARTER_SNAPSHOTS if experience_level == "league_starter" else ENDGAME_SNAPSHOTS
+    snapshots = _snapshots_for(experience_level)
 
     # Load all matching JSONL entries
     entries = []
@@ -545,7 +555,7 @@ def discover_slots(skill: str, ascendancy: str, experience_level: str, variant_s
         slug = f"{skill.lower().replace(' ', '_')}_{variant_slug_part}_{ascendancy.lower()}_"
     else:
         slug = f"{skill.lower().replace(' ', '_')}_{ascendancy.lower()}_"
-    snapshots = LEAGUE_STARTER_SNAPSHOTS if experience_level == "league_starter" else ENDGAME_SNAPSHOTS
+    snapshots = _snapshots_for(experience_level)
 
     all_slots: Counter = Counter()
     xml_paths_seen: set[str] = set()
@@ -601,7 +611,7 @@ def main():
                         help="Unique item name — analyse builds scraped with --item. "
                              "Overrides --skill/--ascendancy.")
     parser.add_argument("--experience-level",  default="league_starter",
-                        choices=["league_starter", "endgame"])
+                        choices=["league_starter", "endgame", "exotic"])
     parser.add_argument("--discover",          action="store_true",
                         help="Print all slot names found in data without running full analysis")
     parser.add_argument("--variant-skill",     default="",

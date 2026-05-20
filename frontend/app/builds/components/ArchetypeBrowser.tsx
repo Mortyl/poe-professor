@@ -40,8 +40,8 @@ interface BrowseResponse {
   mode: string;
 }
 
-type BrowseMode = "league_starter" | "endgame";
-type Step = "league" | "archetype" | "sub" | "subsub" | "build";
+type BrowseMode = "league_starter" | "endgame" | "exotic";
+type Step = "archetype" | "sub" | "subsub" | "build";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -53,7 +53,6 @@ interface Props {
 // ── Step labels ───────────────────────────────────────────────────────────────
 
 const STEP_LABELS: Record<Step, string> = {
-  league:    "League",
   archetype: "Archetype",
   sub:       "Style",
   subsub:    "Type",
@@ -63,8 +62,8 @@ const STEP_LABELS: Record<Step, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ArchetypeBrowser({ onSelectBuild, onBack }: Props) {
-  const [step, setStep] = useState<Step>("league");
-  const [mode, setMode] = useState<BrowseMode | null>(null);
+  const [step, setStep] = useState<Step>("archetype");
+  const [mode, setMode] = useState<BrowseMode>("league_starter");
   const [data, setData] = useState<BrowseResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -73,9 +72,10 @@ export default function ArchetypeBrowser({ onSelectBuild, onBack }: Props) {
   const [selectedSub, setSelectedSub] = useState<Sub | null>(null);
   const [selectedSubSub, setSelectedSubSub] = useState<Sub | null>(null);
 
-  // Build the visible step list dynamically based on what's been selected
+  // Build the visible step list dynamically based on what's been selected.
+  // "league" step is hidden — league is controlled by tabs in the section header.
   const visibleSteps: Step[] = (() => {
-    const steps: Step[] = ["league", "archetype"];
+    const steps: Step[] = ["archetype"];
     if (selectedArch && selectedArch.subs.length > 1) steps.push("sub");
     if (selectedSub && selectedSub.subsubs && selectedSub.subsubs.length > 0) steps.push("subsub");
     steps.push("build");
@@ -84,9 +84,8 @@ export default function ArchetypeBrowser({ onSelectBuild, onBack }: Props) {
 
   const currentStepIndex = visibleSteps.indexOf(step);
 
-  // Fetch when mode is chosen
+  // Fetch when mode changes (league_starter ↔ endgame tabs)
   useEffect(() => {
-    if (!mode) return;
     setLoading(true);
     setError("");
     fetch(`${API_URL}/api/builds/browse?mode=${mode}`)
@@ -98,7 +97,8 @@ export default function ArchetypeBrowser({ onSelectBuild, onBack }: Props) {
 
   // ── Handlers ──
 
-  const handleLeagueSelect = (m: BrowseMode) => {
+  const handleLeagueTab = (m: BrowseMode) => {
+    if (m === mode) return;
     setMode(m);
     setSelectedArch(null);
     setSelectedSub(null);
@@ -127,7 +127,7 @@ export default function ArchetypeBrowser({ onSelectBuild, onBack }: Props) {
   };
 
   const handleBack = () => {
-    if (step === "league") { onBack(); return; }
+    if (step === "archetype") { onBack(); return; }
     const prevStep = visibleSteps[currentStepIndex - 1];
     if (prevStep === "archetype") { setSelectedArch(null); setSelectedSub(null); setSelectedSubSub(null); }
     if (prevStep === "sub")       { setSelectedSub(null); setSelectedSubSub(null); }
@@ -153,154 +153,141 @@ export default function ArchetypeBrowser({ onSelectBuild, onBack }: Props) {
     return [];
   })();
 
-  // ── Summary labels ──
-
-  const summaryMode = mode === "league_starter" ? "League Starter" : mode === "endgame" ? "Endgame" : null;
+  // onBack is reserved for parent-driven navigation (currently unused at top level
+   // since the "Back" button was removed; deeper steps use handleBack internally).
+  void onBack;
 
   return (
-    <div className={wizardStyles.wizard}>
-      <button className={wizardStyles.backBtn} onClick={handleBack}>← Back</button>
-
-      {/* Breadcrumb */}
-      <div className={wizardStyles.breadcrumb}>
-        {visibleSteps.map((s, i) => {
-          const isComplete = i < currentStepIndex;
-          const isCurrent = s === step;
-          return (
-            <div key={s} className={wizardStyles.breadcrumbItem}>
-              <button
-                className={[
-                  wizardStyles.breadcrumbStep,
-                  isCurrent  ? wizardStyles.breadcrumbCurrent : "",
-                  isComplete ? wizardStyles.breadcrumbDone    : "",
-                ].join(" ")}
-                onClick={() => isComplete && goToStep(s)}
-                disabled={!isComplete && !isCurrent}
-              >
-                <span className={wizardStyles.breadcrumbNum}>{i + 1}</span>
-                <span className={wizardStyles.breadcrumbLabel}>{STEP_LABELS[s]}</span>
-              </button>
-              {i < visibleSteps.length - 1 && (
-                <span className={`${wizardStyles.breadcrumbArrow} ${isComplete ? wizardStyles.breadcrumbArrowDone : ""}`}>›</span>
-              )}
-            </div>
-          );
-        })}
+    <div className={styles.archSection}>
+      {/* Section header: title on the left, league tabs on the right */}
+      <div className={styles.archSectionHeader}>
+        <h2 className={styles.archSectionTitle}>Or browse by archetype</h2>
+        <div className={styles.archTabs}>
+          <button
+            className={`${styles.archTab} ${mode === "league_starter" ? styles.archTabActive : ""}`}
+            onClick={() => handleLeagueTab("league_starter")}
+          >
+            League Starter
+          </button>
+          <button
+            className={`${styles.archTab} ${mode === "endgame" ? styles.archTabActive : ""}`}
+            onClick={() => handleLeagueTab("endgame")}
+          >
+            Endgame
+          </button>
+          <button
+            className={`${styles.archTab} ${mode === "exotic" ? styles.archTabActive : ""}`}
+            onClick={() => handleLeagueTab("exotic")}
+          >
+            Exotic
+          </button>
+        </div>
       </div>
 
-      {/* Summary */}
-      {summaryMode && (
-        <div className={wizardStyles.summary}>
-          <span className={wizardStyles.summaryTag}>{summaryMode}</span>
-          {selectedArch && <><span className={wizardStyles.summarySep}>·</span><span className={wizardStyles.summaryTag}>{selectedArch.label}</span></>}
-          {selectedSub   && <><span className={wizardStyles.summarySep}>·</span><span className={wizardStyles.summaryTag}>{selectedSub.label}</span></>}
-          {selectedSubSub && <><span className={wizardStyles.summarySep}>·</span><span className={wizardStyles.summaryTag}>{selectedSubSub.label}</span></>}
-        </div>
+      {/* Top-level archetype grid — matches mockup pixel-perfectly. */}
+      {step === "archetype" && (
+        loading ? (
+          <div className={styles.loadingRow}><div className={styles.spinner} /><span>Loading builds...</span></div>
+        ) : error ? (
+          <p className={styles.errorText}>{error}</p>
+        ) : (
+          <div className={styles.archGrid}>
+            {data?.archetypes.map(arch => (
+              <button key={arch.id} className={styles.archCard} onClick={() => handleArchSelect(arch)}>
+                <span className={styles.archIcon}>{arch.icon}</span>
+                <span className={styles.archLabel}>{arch.label}</span>
+                <span className={styles.archCount}>{arch.combo_count} builds</span>
+              </button>
+            ))}
+          </div>
+        )
       )}
 
-      {/* Step content */}
-      <div className={wizardStyles.stepContent}>
+      {/* Drill-down: sub / subsub / build — uses the wizard panel for breadcrumb + back navigation. */}
+      {step !== "archetype" && (
+        <div className={wizardStyles.wizard}>
+          <button className={wizardStyles.backBtn} onClick={handleBack}>← Back</button>
 
-        {/* League */}
-        {step === "league" && (
-          <div className={wizardStyles.step}>
-            <h2 className={wizardStyles.stepTitle}>Pick Your Goal</h2>
-            <p className={wizardStyles.stepSubtitle}>Are you starting a new league or pushing endgame content?</p>
-            <div className={styles.leagueGrid}>
-              <button className={styles.leagueCard} onClick={() => handleLeagueSelect("league_starter")}>
-                <span className={styles.leagueIcon}>🌱</span>
-                <span className={styles.leagueName}>League Starter</span>
-                <span className={styles.leagueDesc}>Builds that are strong from day one — budget-friendly and self-sufficient.</span>
-              </button>
-              <button className={styles.leagueCard} onClick={() => handleLeagueSelect("endgame")}>
-                <span className={styles.leagueIcon}>⚔️</span>
-                <span className={styles.leagueName}>Endgame</span>
-                <span className={styles.leagueDesc}>High-investment builds including triggers and advanced mechanics.</span>
-              </button>
-            </div>
+          <div className={wizardStyles.breadcrumb}>
+            {visibleSteps.map((s, i) => {
+              const isComplete = i < currentStepIndex;
+              const isCurrent = s === step;
+              return (
+                <div key={s} className={wizardStyles.breadcrumbItem}>
+                  <button
+                    className={[
+                      wizardStyles.breadcrumbStep,
+                      isCurrent  ? wizardStyles.breadcrumbCurrent : "",
+                      isComplete ? wizardStyles.breadcrumbDone    : "",
+                    ].join(" ")}
+                    onClick={() => isComplete && goToStep(s)}
+                    disabled={!isComplete && !isCurrent}
+                  >
+                    <span className={wizardStyles.breadcrumbNum}>{i + 1}</span>
+                    <span className={wizardStyles.breadcrumbLabel}>{STEP_LABELS[s]}</span>
+                  </button>
+                  {i < visibleSteps.length - 1 && (
+                    <span className={`${wizardStyles.breadcrumbArrow} ${isComplete ? wizardStyles.breadcrumbArrowDone : ""}`}>›</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
 
-        {/* Archetype */}
-        {step === "archetype" && (
-          <div className={wizardStyles.step}>
-            {loading ? (
-              <div className={styles.loadingRow}><div className={styles.spinner} /><span>Loading builds...</span></div>
-            ) : error ? (
-              <p className={styles.errorText}>{error}</p>
-            ) : (
-              <>
-                <h2 className={wizardStyles.stepTitle}>Pick Your Archetype</h2>
-                <p className={wizardStyles.stepSubtitle}>How do you want to play?</p>
-                <div className={styles.archGrid}>
-                  {data?.archetypes.map(arch => (
-                    <button key={arch.id} className={styles.archCard} onClick={() => handleArchSelect(arch)}>
-                      <span className={styles.archIcon}>{arch.icon}</span>
-                      <span className={styles.archLabel}>{arch.label}</span>
-                      <span className={styles.archCount}>{arch.combo_count} builds</span>
+          <div className={wizardStyles.stepContent}>
+            {step === "sub" && selectedArch && (
+              <div className={wizardStyles.step}>
+                <h2 className={wizardStyles.stepTitle}>Pick Your Style</h2>
+                <p className={wizardStyles.stepSubtitle}>{selectedArch.label}</p>
+                <div className={styles.subGrid}>
+                  {selectedArch.subs.map(sub => (
+                    <button key={sub.id} className={styles.subCard} onClick={() => handleSubSelect(sub)}>
+                      <span className={styles.subLabel}>{sub.label}</span>
+                      <span className={styles.subCount}>{sub.subsubs ? sub.subsubs.reduce((n, s) => n + s.builds.length, 0) : sub.builds.length} builds</span>
                     </button>
                   ))}
                 </div>
-              </>
+              </div>
             )}
-          </div>
-        )}
 
-        {/* Sub */}
-        {step === "sub" && selectedArch && (
-          <div className={wizardStyles.step}>
-            <h2 className={wizardStyles.stepTitle}>Pick Your Style</h2>
-            <p className={wizardStyles.stepSubtitle}>{selectedArch.label}</p>
-            <div className={styles.subGrid}>
-              {selectedArch.subs.map(sub => (
-                <button key={sub.id} className={styles.subCard} onClick={() => handleSubSelect(sub)}>
-                  <span className={styles.subLabel}>{sub.label}</span>
-                  <span className={styles.subCount}>{sub.subsubs ? sub.subsubs.reduce((n, s) => n + s.builds.length, 0) : sub.builds.length} builds</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+            {step === "subsub" && selectedSub && selectedSub.subsubs && (
+              <div className={wizardStyles.step}>
+                <h2 className={wizardStyles.stepTitle}>Pick Your Type</h2>
+                <p className={wizardStyles.stepSubtitle}>{selectedArch?.label} · {selectedSub.label}</p>
+                <div className={styles.subGrid}>
+                  {selectedSub.subsubs.map(subsub => (
+                    <button key={subsub.id} className={styles.subCard} onClick={() => handleSubSubSelect(subsub)}>
+                      <span className={styles.subLabel}>{subsub.label}</span>
+                      <span className={styles.subCount}>{subsub.builds.length} builds</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* Sub-sub */}
-        {step === "subsub" && selectedSub && selectedSub.subsubs && (
-          <div className={wizardStyles.step}>
-            <h2 className={wizardStyles.stepTitle}>Pick Your Type</h2>
-            <p className={wizardStyles.stepSubtitle}>{selectedArch?.label} · {selectedSub.label}</p>
-            <div className={styles.subGrid}>
-              {selectedSub.subsubs.map(subsub => (
-                <button key={subsub.id} className={styles.subCard} onClick={() => handleSubSubSelect(subsub)}>
-                  <span className={styles.subLabel}>{subsub.label}</span>
-                  <span className={styles.subCount}>{subsub.builds.length} builds</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Build list */}
-        {step === "build" && (
-          <div className={wizardStyles.step}>
-            <h2 className={wizardStyles.stepTitle}>Pick Your Build</h2>
-            <p className={wizardStyles.stepSubtitle}>Ranked by popularity on poe.ninja</p>
-            {currentBuilds.length === 0 ? (
-              <p className={styles.emptyText}>No builds found in this category.</p>
-            ) : (
-              <div className={styles.buildList}>
-                {currentBuilds.map((b, i) => (
-                  <BuildRow
-                    key={`${b.skill}-${b.ascendancy}-${b.variant_companion}-${i}`}
-                    build={b}
-                    rank={i + 1}
-                    onSelect={onSelectBuild}
-                  />
-                ))}
+            {step === "build" && (
+              <div className={wizardStyles.step}>
+                <h2 className={wizardStyles.stepTitle}>Pick Your Build</h2>
+                <p className={wizardStyles.stepSubtitle}>Ranked by popularity on poe.ninja</p>
+                {currentBuilds.length === 0 ? (
+                  <p className={styles.emptyText}>No builds found in this category.</p>
+                ) : (
+                  <div className={styles.buildList}>
+                    {currentBuilds.map((b, i) => (
+                      <BuildRow
+                        key={`${b.skill}-${b.ascendancy}-${b.variant_companion}-${i}`}
+                        build={b}
+                        rank={i + 1}
+                        onSelect={onSelectBuild}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-
-      </div>
+        </div>
+      )}
     </div>
   );
 }

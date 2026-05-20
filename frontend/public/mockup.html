@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PoEProfessor — Obsidian · dot-colour picker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Obsidian palette (locked) ─────────────────────────────────────────
+     Black-glass bank vault: near-black with cool blue undertone, warmer
+     brass accent so it pops. Only the jewel-dot (--blood) changes below. */
+  :root {
+    --bg-deep: #040608;
+    --surface: #0c1018;
+    --surface-2: #161c28;
+
+    --amber: #d4b078;
+    --amber-bright: #f0d098;
+    --amber-dim: #826838;
+    --blood: #d04a44;                         /* default — Ruby */
+
+    --text: #d8d4c8;
+    --text-dim: #7a8090;
+    --text-faint: #3a4050;
+
+    --line: #1a2030;
+
+    --glow-top: rgba(212, 176, 120, 0.05);
+    --glow-bot: rgba(74, 100, 140, 0.05);
+  }
+
+  /* ── Jewel-dot variants (only --blood swaps) ─────────────────────────── */
+  body.dot-ruby      { --blood: #d04a44; }    /* bright red */
+  body.dot-garnet    { --blood: #a02830; }    /* deep oxblood */
+  body.dot-sapphire  { --blood: #4a78d8; }    /* royal blue */
+  body.dot-emerald   { --blood: #3aa878; }    /* jewel green */
+  body.dot-amethyst  { --blood: #9a5ed4; }    /* violet */
+  body.dot-topaz     { --blood: #e8a830; }    /* deep yellow-gold */
+  body.dot-turquoise { --blood: #3ac8c0; }    /* cyan-teal */
+  body.dot-pearl     { --blood: #e8e0d0; }    /* off-white */
+  body.dot-rose      { --blood: #d878a0; }    /* rose quartz */
+  body.dot-peridot   { --blood: #a8c850; }    /* yellow-green */
+
+  body {
+    background:
+      radial-gradient(ellipse at 50% 0%, var(--glow-top) 0%, transparent 50%),
+      radial-gradient(ellipse at 0% 100%, var(--glow-bot) 0%, transparent 40%),
+      var(--bg-deep);
+    color: var(--text);
+    font-family: 'EB Garamond', serif;
+    min-height: 100vh;
+    position: relative;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 100% 100% at 50% 30%, transparent 30%, rgba(0,0,0,0.75) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .container, nav, .dotBar { position: relative; z-index: 2; }
+
+  /* ── Dot-colour picker bar ────────────────────────────────────────────── */
+  .dotBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 40px;
+    background: rgba(0,0,0,0.45);
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+  }
+  .dotBar .dotLabel {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    margin-right: 12px;
+  }
+  .dotBtn {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 6px 12px 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dotBtn:hover { color: var(--amber-bright); border-color: var(--amber-dim); }
+  .dotBtn.active {
+    color: var(--bg-deep);
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+  /* Each button uses its own preview colour for the swatch dot */
+  .dotBtn .dotSwatch {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    /* swatchColor is set inline on each button so it stays independent of
+       button text colour (which flips when active) */
+  }
+  .dotBtn[data-dot="ruby"]      .dotSwatch { background: #d04a44; }
+  .dotBtn[data-dot="garnet"]    .dotSwatch { background: #a02830; }
+  .dotBtn[data-dot="sapphire"]  .dotSwatch { background: #4a78d8; }
+  .dotBtn[data-dot="emerald"]   .dotSwatch { background: #3aa878; }
+  .dotBtn[data-dot="amethyst"]  .dotSwatch { background: #9a5ed4; }
+  .dotBtn[data-dot="topaz"]     .dotSwatch { background: #e8a830; }
+  .dotBtn[data-dot="turquoise"] .dotSwatch { background: #3ac8c0; }
+  .dotBtn[data-dot="pearl"]     .dotSwatch { background: #e8e0d0; }
+  .dotBtn[data-dot="rose"]      .dotSwatch { background: #d878a0; }
+  .dotBtn[data-dot="peridot"]   .dotSwatch { background: #a8c850; }
+
+  /* ── Nav ─────────────────────────────────────────────────────────────── */
+  nav {
+    padding: 22px 40px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+  }
+  .navLogo {
+    font-family: 'Cinzel', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--amber-bright);
+    letter-spacing: 0.22em;
+    text-decoration: none;
+  }
+  .navLogo .dot { color: var(--blood); margin: 0 2px; }
+  .navLinks { display: flex; gap: 32px; }
+  .navLinks a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    transition: color 0.2s;
+    padding-bottom: 4px;
+  }
+  .navLinks a:hover { color: var(--amber-bright); }
+  .navLinks a.active {
+    color: var(--text);
+    border-bottom: 1px solid var(--amber-dim);
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* ── Hero ─────────────────────────────────────────────────────────────── */
+  header { text-align: center; padding: 96px 0 64px; }
+  .flourish {
+    margin: 0 auto 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .flourish .line {
+    height: 1px;
+    width: 60px;
+    background: linear-gradient(to right, transparent, var(--amber-dim), transparent);
+  }
+  .flourish .diamond {
+    width: 8px; height: 8px;
+    background: var(--amber);
+    transform: rotate(45deg);
+    opacity: 0.7;
+  }
+  .flourish .diamond.center { width: 10px; height: 10px; background: var(--amber-bright); opacity: 1; }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 44px;
+    font-weight: 500;
+    color: var(--amber-bright);
+    letter-spacing: 0.32em;
+    margin-bottom: 22px;
+    text-shadow: 0 0 24px rgba(212, 176, 120, 0.2);
+  }
+  h1 .dot {
+    color: var(--blood);
+    /* Inherit the parent's 0.32em letter-spacing so both sides of the dot are
+       symmetric; negative margins pull POE and PROFESSOR closer together
+       without shrinking the rest of the wordmark's tracking. */
+    margin: 0 -0.10em;
+    position: relative;
+    top: -0.08em;
+    font-weight: 400;
+  }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 18px;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    line-height: 1.55;
+    margin-bottom: 6px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .companionLine {
+    margin-top: 22px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+  }
+  .companionLine::before, .companionLine::after { content: '— '; color: var(--amber-dim); }
+  .companionLine::after { content: ' —'; }
+
+  /* ── Section header ──────────────────────────────────────────────────── */
+  .sectionHeader { margin: 80px 0 28px; }
+  .sectionHeader h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amber);
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  .sectionHeader h2::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 60px; height: 1px;
+    background: var(--amber);
+  }
+
+  /* ── Tool cards ───────────────────────────────────────────────────────── */
+  .toolGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+  }
+  .toolCard {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 32px 28px 28px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .toolCard::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--amber-dim) 30%, var(--amber-dim) 70%, transparent);
+    opacity: 0.4;
+    transition: opacity 0.3s, background 0.3s;
+  }
+  .toolCard:hover {
+    background: var(--surface-2);
+    border-color: var(--amber-dim);
+    transform: translateY(-2px);
+  }
+  .toolCard:hover::before {
+    opacity: 1;
+    background: linear-gradient(to right, transparent, var(--amber) 30%, var(--amber-bright) 50%, var(--amber) 70%, transparent);
+  }
+  .toolCard.disabled { cursor: default; opacity: 0.55; }
+  .toolCard.disabled:hover {
+    background: var(--surface);
+    border-color: var(--line);
+    transform: none;
+  }
+  .toolCard.disabled:hover::before {
+    opacity: 0.4;
+    background: linear-gradient(to right, transparent, var(--amber-dim) 30%, var(--amber-dim) 70%, transparent);
+  }
+
+  .toolIcon { font-size: 30px; line-height: 1; margin-bottom: 18px; opacity: 0.85; }
+  .toolName {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--amber);
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .toolDesc {
+    font-family: 'EB Garamond', serif;
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.65;
+    margin-bottom: 22px;
+    font-style: italic;
+  }
+  .toolCta {
+    font-family: 'Cinzel', serif;
+    color: var(--amber-bright);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .toolCta::before { content: '◆ '; color: var(--amber-dim); }
+  .comingSoon {
+    position: absolute;
+    top: 18px; right: 18px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .comingSoon::before { content: '◆ '; color: var(--amber-dim); opacity: 0.6; }
+
+  /* ── Featured ─────────────────────────────────────────────────────────── */
+  .featuredGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 800px) { .featuredGrid { grid-template-columns: 1fr; } }
+  .featuredCard {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 28px 26px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .featuredCard::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--amber-dim) 30%, var(--amber-dim) 70%, transparent);
+    opacity: 0.4;
+    transition: opacity 0.3s, background 0.3s;
+  }
+  .featuredCard:hover {
+    background: var(--surface-2);
+    border-color: var(--amber-dim);
+    transform: translateY(-2px);
+  }
+  .featuredCard:hover::before {
+    opacity: 1;
+    background: linear-gradient(to right, transparent, var(--amber) 30%, var(--amber-bright) 50%, var(--amber) 70%, transparent);
+  }
+  .featuredTag {
+    display: inline-block;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    margin-bottom: 16px;
+  }
+  .featuredTag::before { content: '◆ '; color: var(--amber-dim); }
+  .featuredTitle {
+    font-family: 'EB Garamond', serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.3;
+  }
+  .featuredBlurb {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.65;
+    font-style: italic;
+  }
+  .seeAll { text-align: right; margin-top: 24px; }
+  .seeAll a {
+    font-family: 'Cinzel', serif;
+    color: var(--amber);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .seeAll a:hover { color: var(--amber-bright); }
+
+  /* ── Note ─────────────────────────────────────────────────────────────── */
+  .note {
+    margin-top: 40px;
+    padding: 20px 24px;
+    background: rgba(212, 176, 120, 0.04);
+    border-left: 2px solid var(--amber-dim);
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.65;
+    font-style: italic;
+  }
+  .note strong {
+    font-family: 'Cinzel', serif;
+    font-style: normal;
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- Dot-colour picker — only swaps the jewel dot, palette stays Obsidian -->
+<div class="dotBar">
+  <span class="dotLabel">Dot colour</span>
+  <button class="dotBtn" data-dot="ruby"><span class="dotSwatch"></span>Ruby</button>
+  <button class="dotBtn" data-dot="garnet"><span class="dotSwatch"></span>Garnet</button>
+  <button class="dotBtn" data-dot="sapphire"><span class="dotSwatch"></span>Sapphire</button>
+  <button class="dotBtn" data-dot="emerald"><span class="dotSwatch"></span>Emerald</button>
+  <button class="dotBtn" data-dot="amethyst"><span class="dotSwatch"></span>Amethyst</button>
+  <button class="dotBtn" data-dot="topaz"><span class="dotSwatch"></span>Topaz</button>
+  <button class="dotBtn" data-dot="turquoise"><span class="dotSwatch"></span>Turquoise</button>
+  <button class="dotBtn" data-dot="pearl"><span class="dotSwatch"></span>Pearl</button>
+  <button class="dotBtn" data-dot="rose"><span class="dotSwatch"></span>Rose</button>
+  <button class="dotBtn" data-dot="peridot"><span class="dotSwatch"></span>Peridot</button>
+</div>
+
+<nav>
+  <a href="homepage.html" class="navLogo">POE<span class="dot">·</span>PROFESSOR</a>
+  <div class="navLinks">
+    <a href="#" class="active">Home</a>
+    <a href="browse_v1c_wraeclast.html">Builds</a>
+    <a href="#">Atlas</a>
+    <a href="#">Crafting</a>
+    <a href="#">Leaderboard</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <header>
+    <div class="flourish">
+      <span class="line"></span>
+      <span class="diamond"></span>
+      <span class="diamond center"></span>
+      <span class="diamond"></span>
+      <span class="line"></span>
+    </div>
+    <h1>POE<span class="dot">·</span>PROFESSOR</h1>
+    <p class="subtitle">An AI-bound companion for the exiles of Path of Exile 2 — real player data, expert-curated guides, and tools for every part of the game.</p>
+    <p class="companionLine">Shaper companion attends every page</p>
+  </header>
+
+  <div class="sectionHeader"><h2>The Suite</h2></div>
+  <div class="toolGrid">
+    <a href="browse_v1c_wraeclast.html" class="toolCard">
+      <div class="toolIcon">⚔️</div>
+      <div class="toolName">Build Browser</div>
+      <div class="toolDesc">Find a build that fits how you wish to play — by content focus, defense layer, or this league's featured picks. Every entry drawn from the leaderboards of Wraeclast.</div>
+      <div class="toolCta">Browse builds</div>
+    </a>
+    <div class="toolCard disabled">
+      <span class="comingSoon">Coming</span>
+      <div class="toolIcon">🗺️</div>
+      <div class="toolName">Atlas Designer</div>
+      <div class="toolDesc">Choose an endgame strategy and receive a guided Atlas tree with content recommendations.</div>
+      <div class="toolCta">In the forge</div>
+    </div>
+    <div class="toolCard disabled">
+      <span class="comingSoon">Coming</span>
+      <div class="toolIcon">🔨</div>
+      <div class="toolName">Crafting Architect</div>
+      <div class="toolDesc">Step-by-step crafting plans for the item you desire. Bench, essence, expedition, and beyond.</div>
+      <div class="toolCta">In the forge</div>
+    </div>
+    <div class="toolCard disabled">
+      <span class="comingSoon">Coming</span>
+      <div class="toolIcon">📊</div>
+      <div class="toolName">Leaderboard</div>
+      <div class="toolDesc">The highest-ranked characters by class, ascendancy, and league. See what the best exiles are running.</div>
+      <div class="toolCta">In the forge</div>
+    </div>
+  </div>
+
+  <div class="sectionHeader"><h2>Featured this league</h2></div>
+  <div class="featuredGrid">
+    <a href="browse_v1c_wraeclast.html" class="featuredCard">
+      <span class="featuredTag">League Starter</span>
+      <div class="featuredTitle">Best three builds to start Fate of the Vaal</div>
+      <div class="featuredBlurb">Hand-picked combos that level smoothly, scale into mapping, and reach endgame on a humble purse.</div>
+    </a>
+    <a href="browse_v1c_wraeclast.html" class="featuredCard">
+      <span class="featuredTag">Endgame</span>
+      <div class="featuredTitle">Builds that conquer all content</div>
+      <div class="featuredBlurb">Versatile setups that handle mapping, bossing, delve and the deepest corruptions of the Atlas.</div>
+    </a>
+    <a href="browse_v1c_wraeclast.html" class="featuredCard">
+      <span class="featuredTag">Defensive</span>
+      <div class="featuredTitle">For those who play but one life</div>
+      <div class="featuredBlurb">Layered defenses against the cruelty of Wraeclast. Tanky, careful, hard to kill.</div>
+    </a>
+  </div>
+
+  <div class="seeAll"><a href="browse_v1c_wraeclast.html">All featured picks →</a></div>
+
+  <div class="note">
+    <strong>Obsidian palette, dot-colour exploration — </strong>The only thing that changes between options is the jewel dot in the nav logo and the hero wordmark. Ten options: <strong>Ruby</strong> (bright red), <strong>Garnet</strong> (deep oxblood), <strong>Sapphire</strong> (royal blue), <strong>Emerald</strong> (jewel green), <strong>Amethyst</strong> (violet), <strong>Topaz</strong> (deep gold), <strong>Turquoise</strong> (cyan-teal), <strong>Pearl</strong> (off-white), <strong>Rose</strong> (rose quartz), <strong>Peridot</strong> (yellow-green). Pick the one that catches your eye and we'll bake it into the frontend.
+  </div>
+
+</div>
+
+<script>
+  const KEY = 'poeProf.obsidianDot';
+  const body = document.body;
+  const btns = document.querySelectorAll('.dotBtn');
+
+  function apply(dot) {
+    body.className = body.className.split(' ').filter(c => !c.startsWith('dot-')).join(' ').trim();
+    if (dot) body.classList.add('dot-' + dot);
+    btns.forEach(b => b.classList.toggle('active', b.dataset.dot === dot));
+    try { localStorage.setItem(KEY, dot || ''); } catch {}
+  }
+
+  btns.forEach(b => b.addEventListener('click', () => apply(b.dataset.dot)));
+
+  let saved = '';
+  try { saved = localStorage.getItem(KEY) || ''; } catch {}
+  apply(saved || 'garnet');
+</script>
+
+</body>
+</html>

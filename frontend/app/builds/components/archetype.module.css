@@ -1,3 +1,65 @@
+﻿/* ── Section header with league tabs ─────────────────────────────────────── */
+.archSection {
+  margin-top: 72px;
+}
+.archSectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.archSectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0;
+  width: 60px; height: 1px;
+  background: var(--amber);
+}
+.archSectionTitle {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.archTabs {
+  display: flex;
+  gap: 4px;
+}
+.archTab {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 7px 15px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.archTab:hover {
+  color: var(--amber-bright);
+  border-color: var(--amber-dim);
+}
+.archTabActive {
+  color: var(--bg-deep);
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.archTabActive:hover {
+  color: var(--bg-deep);
+  background: var(--amber-bright);
+  border-color: var(--amber-bright);
+}
+
 /* ── League step ──────────────────────────────────────────────────────────── */
 .leagueGrid {
   display: grid;
@@ -15,8 +77,8 @@
   align-items: center;
   gap: 12px;
   padding: 36px 24px;
-  background: #0d0d14;
-  border: 1px solid #2a2a3a;
+  background: #0c1018;
+  border: 1px solid #1a2030;
   border-radius: 4px;
   cursor: pointer;
   text-align: center;
@@ -24,8 +86,8 @@
 }
 
 .leagueCard:hover {
-  border-color: #c8963c;
-  background: #1a1500;
+  border-color: #d4b078;
+  background: #161c28;
   transform: translateY(-2px);
 }
 
@@ -38,14 +100,14 @@
   font-family: 'Cinzel', serif;
   font-size: 18px;
   font-weight: 600;
-  color: #e8d4a8;
+  color: #d8d4c8;
   letter-spacing: 0.06em;
 }
 
 .leagueDesc {
   font-family: 'Rajdhani', sans-serif;
   font-size: 13px;
-  color: #4a4a6a;
+  color: #7a8090;
   line-height: 1.6;
   letter-spacing: 0.02em;
 }
@@ -53,8 +115,8 @@
 /* ── Archetype grid ────────────────────────────────────────────────────────── */
 .archGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
 }
 
 @media (max-width: 500px) {
@@ -65,39 +127,41 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 24px 16px;
-  background: #0d0d14;
-  border: 1px solid #2a2a3a;
-  border-radius: 4px;
+  gap: 12px;
+  padding: 32px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  transition: border-color 0.25s, background 0.25s, transform 0.25s;
 }
 
 .archCard:hover {
-  border-color: #c8963c;
-  background: #1a1500;
+  border-color: var(--amber-dim);
+  background: var(--surface-2);
   transform: translateY(-2px);
 }
 
 .archIcon {
-  font-size: 32px;
+  font-size: 28px;
   line-height: 1;
+  opacity: 0.85;
 }
 
 .archLabel {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #e8d4a8;
-  letter-spacing: 0.05em;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--amber);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
 .archCount {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  color: #4a4a6a;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-faint);
 }
 
 /* ── Sub-archetype grid ────────────────────────────────────────────────────── */
@@ -117,8 +181,8 @@
   align-items: center;
   gap: 8px;
   padding: 24px 16px;
-  background: #0d0d14;
-  border: 1px solid #2a2a3a;
+  background: #0c1018;
+  border: 1px solid #1a2030;
   border-radius: 4px;
   cursor: pointer;
   text-align: center;
@@ -126,8 +190,8 @@
 }
 
 .subCard:hover {
-  border-color: #c8963c;
-  background: #1a1500;
+  border-color: #d4b078;
+  background: #161c28;
   transform: translateY(-2px);
 }
 
@@ -135,14 +199,14 @@
   font-family: 'Cinzel', serif;
   font-size: 16px;
   font-weight: 600;
-  color: #e8d4a8;
+  color: #d8d4c8;
   letter-spacing: 0.05em;
 }
 
 .subCount {
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
-  color: #4a4a6a;
+  color: #7a8090;
 }
 
 /* ── Build list ────────────────────────────────────────────────────────────── */
@@ -157,8 +221,8 @@
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  background: #0d0d14;
-  border: 1px solid #2a2a3a;
+  background: #0c1018;
+  border: 1px solid #1a2030;
   border-radius: 2px;
   cursor: pointer;
   text-align: left;
@@ -167,7 +231,7 @@
 }
 
 .buildRow:hover {
-  border-color: #c8963c55;
+  border-color: #d4b07855;
   background: #111108;
 }
 
@@ -178,7 +242,7 @@
 .buildRank {
   font-family: 'Share Tech Mono', monospace;
   font-size: 11px;
-  color: #3a3a5a;
+  color: #3a4050;
   width: 28px;
   flex-shrink: 0;
   text-align: right;
@@ -196,7 +260,7 @@
   font-family: 'Rajdhani', sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: #c8b89a;
+  color: #7a8090;
   letter-spacing: 0.03em;
   white-space: nowrap;
   overflow: hidden;
@@ -204,13 +268,13 @@
 }
 
 .buildRow:hover .buildSkill {
-  color: #e8b84a;
+  color: #f0d098;
 }
 
 .buildAsc {
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
-  color: #c8963c;
+  color: #d4b078;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -225,7 +289,7 @@
 .buildCount {
   font-family: 'Share Tech Mono', monospace;
   font-size: 11px;
-  color: #4a4a6a;
+  color: #7a8090;
 }
 
 .buildPendingBadge {
@@ -245,7 +309,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #4a4a6a;
+  color: #7a8090;
   font-family: 'Share Tech Mono', monospace;
   font-size: 12px;
   padding: 20px 0;
@@ -254,8 +318,8 @@
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid #2a2a3a;
-  border-top-color: #c8963c;
+  border: 2px solid #1a2030;
+  border-top-color: #d4b078;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -273,6 +337,6 @@
 .emptyText {
   font-family: 'Rajdhani', sans-serif;
   font-size: 13px;
-  color: #4a4a6a;
+  color: #7a8090;
   padding: 20px 0;
 }

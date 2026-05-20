@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { itemIconPath } from "./icons";
+
 interface UniqueItem {
   name: string;
   base: string;
@@ -34,28 +37,30 @@ interface GearPanelProps {
   usefulUniques?: UniqueItem[];
 }
 
-// PoE2 equipment layout — positions in a CSS grid (rows x cols, 1-indexed)
-// Grid is 7 cols x 6 rows
-const SLOT_LAYOUT: Record<string, { row: number; col: number; rowSpan?: number; colSpan?: number }> = {
-  "Weapon 1":    { row: 1, col: 1, rowSpan: 3 },
-  "Helmet":      { row: 1, col: 3 },
-  "Weapon 2":    { row: 1, col: 5, rowSpan: 3 },
-  "Ring 1":      { row: 2, col: 2 },
-  "Body Armour": { row: 2, col: 3, rowSpan: 2 },
-  "Amulet":      { row: 2, col: 4 },
-  "Gloves":      { row: 4, col: 1 },
-  "Ring 2":      { row: 3, col: 4 },
-  "Boots":       { row: 4, col: 5 },
-  "Belt":        { row: 4, col: 3 },
+// PoE2 doll layout — 5 cols x 4 rows.
+// Vertical cards (icon on top, text below) — bigger icons on row-spanning cards
+// soak up the extra height. Belt/boots are normal cells below.
+const SLOT_LAYOUT: Record<string, { row: number; col: string; rowSpan?: number; iconSize?: number; compact?: boolean }> = {
+  "Weapon 1":    { row: 1, col: "1", rowSpan: 2, iconSize: 200 },
+  "Helmet":      { row: 1, col: "3" },
+  "Weapon 2":    { row: 1, col: "5", rowSpan: 2, iconSize: 200 },
+  "Ring 1":      { row: 2, col: "2" },
+  "Body Armour": { row: 2, col: "3", rowSpan: 2, iconSize: 160 },
+  "Amulet":      { row: 2, col: "4" },
+  "Gloves":      { row: 3, col: "2" },
+  "Ring 2":      { row: 3, col: "4" },
+  "Belt":        { row: 4, col: "1" },
+  "Charm 1":     { row: 4, col: "2", iconSize: 48, compact: true },
+  "Charm 2":     { row: 4, col: "3", iconSize: 48, compact: true },
+  "Charm 3":     { row: 4, col: "4", iconSize: 48, compact: true },
+  "Boots":       { row: 4, col: "5" },
 };
-
-const CHARM_SLOTS = ["Charm 1", "Charm 2", "Charm 3"];
 
 const SLOT_LABELS: Record<string, string> = {
   "Weapon 1":    "Weapon",
   "Weapon 2":    "Offhand",
   "Helmet":      "Helmet",
-  "Body Armour": "Body",
+  "Body Armour": "Body Armour",
   "Gloves":      "Gloves",
   "Boots":       "Boots",
   "Amulet":      "Amulet",
@@ -67,187 +72,100 @@ const SLOT_LABELS: Record<string, string> = {
   "Charm 3":     "Charm 3",
 };
 
+const GRID_WIDTH = 1080;         // 5 cols × ~200px
+const ICON_SIZE  = 80;           // default; row-spanning cells override via SLOT_LAYOUT.iconSize
+
 export default function GearPanel({ data, usefulUniques }: GearPanelProps) {
   const slotMap = Object.fromEntries(data.slots.map(s => [s.slot, s]));
 
-  const hasAnyCharm = CHARM_SLOTS.some(c => slotMap[c]);
-
   return (
     <div>
-      <div style={{ fontSize: "11px", color: "#666", letterSpacing: "0.05em", marginBottom: "12px" }}>
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "11px",
+        color: "var(--text-faint)",
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        marginBottom: "16px",
+      }}>
         Based on {data.builds_analysed.toLocaleString()} real builds
       </div>
 
-      {/* Gear grid + Useful Uniques side by side */}
-      <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start", flexWrap: "wrap" }}>
 
-        {/* Left: gear grid + charms */}
+        {/* Left: gear doll + charms */}
         <div style={{ flex: "0 0 auto" }}>
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(5, 1fr)",
-            gridTemplateRows: "repeat(4, auto)",
-            gap: "6px",
-            width: "560px",
+            gridAutoRows: "minmax(120px, auto)",
+            gap: "10px",
+            width: `${GRID_WIDTH}px`,
+            maxWidth: "100%",
           }}>
-            {Object.entries(SLOT_LAYOUT).map(([slotName, pos]) => {
-              const slot = slotMap[slotName];
-              return (
-                <SlotCell
-                  key={slotName}
-                  label={SLOT_LABELS[slotName]}
-                  slot={slot ?? null}
-                  rowSpan={pos.rowSpan}
-                />
-              );
-            })}
+            {Object.entries(SLOT_LAYOUT).map(([slotName, pos]) => (
+              <SlotCell
+                key={slotName}
+                label={SLOT_LABELS[slotName]}
+                slot={slotMap[slotName] ?? null}
+                gridRow={pos.row}
+                gridCol={pos.col}
+                rowSpan={pos.rowSpan}
+                iconSize={pos.iconSize ?? ICON_SIZE}
+                compact={pos.compact}
+              />
+            ))}
           </div>
-
-          {/* Charms */}
-          {hasAnyCharm && (
-            <div style={{ marginTop: "10px" }}>
-              <div style={{
-                fontSize: "10px",
-                color: "#555",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                marginBottom: "6px",
-              }}>
-                Charms
-              </div>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "6px",
-                width: "560px",
-              }}>
-                {CHARM_SLOTS.map(slotName => (
-                  <SlotCell
-                    key={slotName}
-                    label={SLOT_LABELS[slotName]}
-                    slot={slotMap[slotName] ?? null}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right: Useful Uniques */}
+        {/* Right: Useful Uniques (collapsed by default) */}
         {(usefulUniques?.length ?? 0) > 0 && (
-          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-            <div style={{
-              fontSize: "10px",
-              color: "#555",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              marginBottom: "6px",
-            }}>
-              Useful Uniques
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              {usefulUniques!.map((u, i) => (
-                <div key={i} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: "linear-gradient(90deg, #1a1208 0%, #16120c 100%)",
-                  border: "1px solid #3a2e1a",
-                  borderLeft: "3px solid #c8a84a",
-                  borderRadius: "4px",
-                  padding: "8px 12px",
-                }}>
-                  <div>
-                    <div style={{ color: "#c8a84a", fontSize: "13px", fontWeight: 600, fontFamily: "var(--font-cinzel, serif)" }}>
-                      {u.name}
-                    </div>
-                    <div style={{ color: "#666", fontSize: "10px" }}>{u.base} · {u.slot}</div>
-                  </div>
-                  <div style={{ color: "#8a7040", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap", marginLeft: "8px" }}>
-                    {u.pct.toFixed(1)}%
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
+            <Collapsible label="Useful Uniques" count={usefulUniques!.length}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {usefulUniques!.map((u, i) => (
+                  <UniqueRow key={i} unique={u} />
+                ))}
+              </div>
+            </Collapsible>
           </div>
         )}
       </div>
 
-      {/* Optional unique charms */}
+      {/* Optional unique charms (collapsed by default) */}
       {(data.top_charm_uniques?.length ?? 0) > 0 && (
-        <div style={{ maxWidth: "560px", marginTop: "14px" }}>
-          <div style={{
-            fontSize: "10px",
-            color: "#666",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            marginBottom: "6px",
-          }}>
-            Optional Unique Charms
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {data.top_charm_uniques!.map((u, i) => (
-              <div key={i} style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                background: "linear-gradient(90deg, #1a1208 0%, #16120c 100%)",
-                border: "1px solid #3a2e1a",
-                borderLeft: "3px solid #c8a84a",
-                borderRadius: "4px",
-                padding: "6px 10px",
-              }}>
-                <div>
-                  <div style={{ color: "#c8a84a", fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-cinzel, serif)" }}>
-                    {u.name}
-                  </div>
-                  <div style={{ color: "#555", fontSize: "10px" }}>{u.base}</div>
-                </div>
-                <div style={{ color: "#8a7040", fontSize: "11px", fontWeight: 600 }}>
-                  {u.pct.toFixed(1)}%
-                </div>
-              </div>
-            ))}
-          </div>
+        <div style={{ maxWidth: `${GRID_WIDTH}px`, marginTop: "20px" }}>
+          <Collapsible label="Optional Unique Charms" count={data.top_charm_uniques!.length}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {data.top_charm_uniques!.map((u, i) => (
+                <UniqueRow key={i} unique={u} />
+              ))}
+            </div>
+          </Collapsible>
         </div>
       )}
 
       {/* Jewels */}
       {((data.top_jewel_bases?.length ?? 0) > 0 || (data.top_jewel_uniques?.length ?? 0) > 0) && (
-        <div style={{ maxWidth: "560px", marginTop: "14px" }}>
-          <div style={{
-            fontSize: "10px",
-            color: "#666",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            marginBottom: "6px",
-          }}>
-            Jewels
-          </div>
+        <div style={{ maxWidth: `${GRID_WIDTH}px`, marginTop: "20px" }}>
+          <SectionLabel>Jewels</SectionLabel>
 
-          {/* Magic jewel bases */}
           {(data.top_jewel_bases?.length ?? 0) > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
               {data.top_jewel_bases!.map((j, i) => (
-                <div key={i} style={{
-                  background: "linear-gradient(160deg, #0e1a14 0%, #0a120e 100%)",
-                  border: "1px solid #1e2e22",
-                  borderTop: "2px solid #4a9a6a",
-                  borderRadius: "4px",
-                  padding: "8px",
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: "#6aba8a", fontSize: "12px", fontFamily: "var(--font-cinzel, serif)", fontWeight: 600 }}>
+                <div key={i} style={cardStyle()}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ fontFamily: "var(--font-serif)", fontSize: "15px", fontWeight: 600, color: "var(--text)" }}>
                       {j.base}
                     </span>
-                    <span style={{ color: "#3a6a4a", fontSize: "10px", fontWeight: 600 }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-faint)", letterSpacing: "0.08em" }}>
                       {j.pct.toFixed(1)}% of builds
                     </span>
                   </div>
                   {j.top_mods.length > 0 && (
-                    <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <div style={modsBlockStyle()}>
                       {j.top_mods.map((mod, mi) => (
-                        <div key={mi} style={{ color: "#7a9aaa", fontSize: "9px", lineHeight: 1.3 }}>{mod}</div>
+                        <div key={mi}>+ {mod}</div>
                       ))}
                     </div>
                   )}
@@ -256,98 +174,259 @@ export default function GearPanel({ data, usefulUniques }: GearPanelProps) {
             </div>
           )}
 
-          {/* Unique jewels */}
           {(data.top_jewel_uniques?.length ?? 0) > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {data.top_jewel_uniques!.map((u, i) => (
-                <div key={i} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: "linear-gradient(90deg, #1a1208 0%, #16120c 100%)",
-                  border: "1px solid #3a2e1a",
-                  borderLeft: "3px solid #c8a84a",
-                  borderRadius: "4px",
-                  padding: "6px 10px",
-                }}>
-                  <div>
-                    <div style={{ color: "#c8a84a", fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-cinzel, serif)" }}>
-                      {u.name}
-                    </div>
-                    <div style={{ color: "#555", fontSize: "10px" }}>{u.base}</div>
-                  </div>
-                  <div style={{ color: "#8a7040", fontSize: "11px", fontWeight: 600 }}>
-                    {u.pct.toFixed(1)}%
-                  </div>
-                </div>
+                <UniqueRow key={i} unique={u} />
               ))}
             </div>
           )}
         </div>
       )}
-
     </div>
   );
 }
 
-function SlotCell({ label, slot, rowSpan }: { label: string; slot: GearSlot | null; rowSpan?: number }) {
-  const useUnique   = !!slot?.top_unique;
-  const accentColor = useUnique ? "#c8a84a" : "#4a7a8a";
-  const baseName    = useUnique ? slot!.top_unique!.name : (slot?.top_rare_base || "—");
-  const basePct     = useUnique ? slot?.top_unique?.pct  : slot?.top_rare_base_pct;
+// ── Building blocks ───────────────────────────────────────────────────────
+
+function Collapsible({ label, count, children }: { label: string; count?: number; children: React.ReactNode }) {
+  return (
+    <details style={{
+      background: "var(--surface)",
+      border: "1px solid var(--line)",
+    }}>
+      <summary style={{
+        cursor: "pointer",
+        listStyle: "none",
+        padding: "12px 16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        userSelect: "none",
+      }}>
+        <span style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "11px",
+          color: "var(--amber)",
+          letterSpacing: "0.24em",
+          textTransform: "uppercase",
+        }}>
+          {label}
+          {count !== undefined && (
+            <span style={{ color: "var(--amber-dim)", marginLeft: "8px" }}>{count}</span>
+          )}
+        </span>
+        <span aria-hidden style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "10px",
+          color: "var(--amber-dim)",
+          letterSpacing: "0.1em",
+        }}>
+          OPEN ▾
+        </span>
+      </summary>
+      <div style={{ padding: "0 12px 12px" }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontFamily: "var(--font-display)",
+      fontSize: "10px",
+      color: "var(--amber)",
+      letterSpacing: "0.24em",
+      textTransform: "uppercase",
+      marginBottom: "10px",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function cardStyle(): React.CSSProperties {
+  return {
+    background: "var(--surface)",
+    border: "1px solid var(--line)",
+    padding: "14px 16px",
+  };
+}
+
+function modsBlockStyle(): React.CSSProperties {
+  return {
+    marginTop: "8px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "11px",
+    color: "var(--text-dim)",
+    lineHeight: 1.55,
+    letterSpacing: "0.02em",
+  };
+}
+
+function ItemIcon({ name, base, size }: { name: string | null | undefined; base?: string | null; size: number }) {
+  const src = itemIconPath(name, base);
+  const [ok, setOk] = useState(true);
+  const wrapStyle: React.CSSProperties = {
+    width: size,
+    height: size,
+    flexShrink: 0,
+    background: "var(--bg-deep)",
+    border: "1px solid var(--line)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  };
+  if (!src || !ok) {
+    return (
+      <div style={wrapStyle}>
+        <span style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "11px",
+          color: "var(--text-faint)",
+          letterSpacing: "0.1em",
+        }}>—</span>
+      </div>
+    );
+  }
+  return (
+    <div style={wrapStyle}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={name ?? base ?? ""}
+        width={size}
+        height={size}
+        style={{ width: size, height: size, objectFit: "contain" }}
+        onError={() => setOk(false)}
+      />
+    </div>
+  );
+}
+
+function SlotCell({ label, slot, gridRow, gridCol, rowSpan, iconSize = ICON_SIZE, compact = false }: { label: string; slot: GearSlot | null; gridRow?: number; gridCol?: number | string; rowSpan?: number; iconSize?: number; compact?: boolean }) {
+  const useUnique = !!slot?.top_unique;
+  const itemName  = useUnique ? slot!.top_unique!.name : (slot?.top_rare_base || null);
+  const baseName  = useUnique ? slot!.top_unique!.base : slot?.top_rare_base;
+  const pct       = useUnique ? slot?.top_unique?.pct : slot?.top_rare_base_pct;
 
   return (
     <div style={{
-      gridRow: rowSpan ? `span ${rowSpan}` : undefined,
-      background: "linear-gradient(160deg, #1a1410 0%, #12100c 100%)",
-      border: "1px solid #1e1e18",
-      borderTop: `2px solid ${accentColor}`,
-      borderRadius: "4px",
-      padding: "8px",
+      gridRow: rowSpan ? `${gridRow} / span ${rowSpan}` : gridRow,
+      gridColumn: gridCol,
+      ...cardStyle(),
       display: "flex",
       flexDirection: "column",
-      gap: "4px",
-      minHeight: rowSpan ? `${rowSpan * 90}px` : "90px",
+      gap: "10px",
+      justifyContent: "center",   // centre content vertically so empty space splits top/bottom
     }}>
-      {/* Slot label */}
-      <div style={{ fontSize: "9px", color: "#555", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+      <div style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "10px",
+        color: "var(--amber)",
+        letterSpacing: "0.2em",
+        textTransform: "uppercase",
+        textAlign: "center",
+      }}>
         {label}
       </div>
 
       {slot ? (
-        <>
-          {/* Item name */}
-          <div style={{
-            color: accentColor,
-            fontSize: "11px",
-            fontWeight: 600,
-            fontFamily: "var(--font-cinzel, serif)",
-            lineHeight: 1.3,
-          }}>
-            {baseName}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: compact ? "6px" : "10px" }}>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <ItemIcon name={itemName} base={baseName} size={iconSize} />
           </div>
-
-          {/* % of builds */}
-          {basePct !== undefined && basePct > 0 && (
-            <div style={{ color: "#555", fontSize: "9px" }}>
-              {basePct.toFixed(1)}% of builds
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: compact ? "13px" : "16px",
+              fontWeight: 600,
+              color: useUnique ? "var(--amber-bright)" : "var(--text)",
+              lineHeight: 1.25,
+              marginBottom: "3px",
+              textAlign: "center",
+            }}>
+              {itemName ?? "—"}
             </div>
-          )}
-
-          {/* Top mods — only show for rares */}
-          {!useUnique && slot.top_mods.length > 0 && (
-            <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
-              {slot.top_mods.map((mod, i) => (
-                <div key={i} style={{ color: "#7a9aaa", fontSize: "9px", lineHeight: 1.3 }}>
-                  {mod}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+            {useUnique && baseName && !compact && (
+              <div style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "13px",
+                fontStyle: "italic",
+                color: "var(--text-dim)",
+                marginBottom: "4px",
+                textAlign: "center",
+              }}>
+                {baseName}
+                {pct !== undefined && pct > 0 && (
+                  <span style={{ color: "var(--text-faint)" }}> · {pct.toFixed(1)}%</span>
+                )}
+              </div>
+            )}
+            {!useUnique && !compact && slot.top_mods.length > 0 && (
+              <div style={modsBlockStyle()}>
+                {slot.top_mods.map((mod, i) => (
+                  <div key={i}>+ {mod}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
-        <div style={{ color: "#333", fontSize: "10px", fontStyle: "italic" }}>no data</div>
+        <div style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "13px",
+          fontStyle: "italic",
+          color: "var(--text-faint)",
+        }}>
+          no data
+        </div>
       )}
+    </div>
+  );
+}
+
+function UniqueRow({ unique }: { unique: UniqueItem }) {
+  return (
+    <div style={{
+      ...cardStyle(),
+      display: "flex",
+      gap: "12px",
+      alignItems: "center",
+      borderLeft: "2px solid var(--amber)",
+    }}>
+      <ItemIcon name={unique.name} base={unique.base} size={40} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "14px",
+          fontWeight: 600,
+          color: "var(--amber-bright)",
+          lineHeight: 1.25,
+        }}>
+          {unique.name}
+        </div>
+        <div style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "12px",
+          fontStyle: "italic",
+          color: "var(--text-dim)",
+        }}>
+          {unique.base}{unique.slot ? ` · ${unique.slot}` : ""}
+        </div>
+      </div>
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "11px",
+        color: "var(--amber-dim)",
+        letterSpacing: "0.08em",
+        whiteSpace: "nowrap",
+      }}>
+        {unique.pct.toFixed(1)}%
+      </div>
     </div>
   );
 }

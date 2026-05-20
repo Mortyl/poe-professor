@@ -9,27 +9,33 @@ from services.tree_service import recommend_nodes_branched
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports")
 
 
+# Wizard precedence — endgame full-meta > league-starter full-meta > exotic (sub-meta sketch)
+REPORT_EXP_PRECEDENCE = ("endgame", "league_starter", "exotic")
+
+
 def _load_report(skill: str, ascendancy: str, report_type: str) -> dict | None:
     """Load a JSON report if it exists. Returns None gracefully if not found.
 
-    Filename precedence (most specific → most legacy):
-      1. {skill}_{ascendancy}_league_starter_{type}.json — current per-combo format
-      2. {skill}_league_starter_{type}.json              — legacy skill-only (polluted
+    Each experience level is tried in REPORT_EXP_PRECEDENCE order. Within an
+    exp level, the filename precedence is most-specific → most-legacy:
+      1. {skill}_{ascendancy}_{exp}_{type}.json — current per-combo format
+      2. {skill}_{exp}_{type}.json              — legacy skill-only (polluted
          across ascendancies; here for back-compat until all combos re-analysed)
-      3. {ascendancy}_league_starter_{type}.json         — ancient ascendancy-only fallback
+      3. {ascendancy}_{exp}_{type}.json         — ancient ascendancy-only fallback
     """
     skill_slug = skill.lower().replace(" ", "_")
     asc_slug   = ascendancy.lower()
 
-    candidates = [
-        os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_league_starter_{report_type}.json"),
-        os.path.join(REPORT_DIR, f"{skill_slug}_league_starter_{report_type}.json"),
-        os.path.join(REPORT_DIR, f"{asc_slug}_league_starter_{report_type}.json"),
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                return json.load(f)
+    for exp in REPORT_EXP_PRECEDENCE:
+        candidates = [
+            os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_{exp}_{report_type}.json"),
+            os.path.join(REPORT_DIR, f"{skill_slug}_{exp}_{report_type}.json"),
+            os.path.join(REPORT_DIR, f"{asc_slug}_{exp}_{report_type}.json"),
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                with open(path, encoding="utf-8") as f:
+                    return json.load(f)
     return None
 
 
@@ -179,7 +185,8 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
             if top_rare_base_pct < 1.0 and slot_data.get("uniques"):
                 u = slot_data["uniques"][0]
                 top_unique = UniqueItem(name=u["name"], base=u["base"], slot=slot_name, pct=u["pct"])
-            top_mods = [m["mod"] for m in slot_data.get("top_mods", [])[:3]]
+            mod_cap = 6 if slot_name in ("Weapon 1", "Weapon 2") else 4 if slot_name == "Body Armour" else 3
+            top_mods = [m["mod"] for m in slot_data.get("top_mods", [])[:mod_cap]]
             gear_slots.append(GearSlot(
                 slot=slot_name,
                 top_unique=top_unique,

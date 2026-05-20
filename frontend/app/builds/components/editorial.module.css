@@ -1,0 +1,407 @@
+/* Build Guide — Editorial layout.
+   Centered hero (name + subtitle + meta), two-column body with a sticky
+   left sidebar (quick stats + section nav) and the main content stacked
+   vertically on the right. */
+
+.wrap {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-serif);
+}
+
+/* ── Breadcrumb ───────────────────────────────────────────────────────── */
+.crumbs {
+  margin: 32px 0 8px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.crumbs a { color: inherit; text-decoration: none; }
+.crumbs a:hover { color: var(--amber-bright); }
+.crumbs .sep { color: var(--amber-dim); margin: 0 8px; }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.hero {
+  padding: 24px 0 40px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 48px;
+  align-items: center;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0;
+  width: 120px; height: 1px;
+  background: var(--amber);
+}
+.heroText { min-width: 0; }
+@media (max-width: 700px) {
+  .hero { grid-template-columns: 1fr; gap: 24px; }
+  .heroArt { justify-self: start; }
+}
+
+/* ── Hero art: skill icon (large) + ascendancy badge (small) ──────────── */
+.heroArt {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+/* Ascendancy is the dominant icon (left, larger). Skill is secondary (right, smaller). */
+.heroAsc {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border: 1px solid var(--amber-dim);
+  background:
+    radial-gradient(circle at 50% 35%, rgba(212,176,120,0.12) 0%, transparent 60%),
+    var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 24px rgba(212,176,120,0.08), inset 0 1px 0 rgba(212,176,120,0.08);
+}
+.heroAsc::before, .heroAsc::after {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1px solid var(--amber-dim);
+}
+.heroAsc::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.heroAsc::after  { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.heroAscImg {
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(212,176,120,0.25));
+}
+.heroAscFallback {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-align: center;
+  padding: 0 8px;
+  line-height: 1.15;
+  text-shadow: 0 0 14px rgba(212,176,120,0.25);
+}
+
+.heroSkill {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.heroSkillImg {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+.heroSkillFallback {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--amber);
+  letter-spacing: 0.04em;
+}
+.heroTag {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--amber);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+.heroTag::before { content: '◆ '; color: var(--amber-dim); }
+.heroName {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 56px);
+  font-weight: 500;
+  color: var(--amber-bright);
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  text-shadow: 0 0 32px rgba(212, 176, 120, 0.15);
+  margin-bottom: 14px;
+}
+.heroSub {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-style: italic;
+  color: var(--text-dim);
+  max-width: 720px;
+  line-height: 1.55;
+}
+.heroMeta {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.heroMeta strong { color: var(--amber); font-weight: 400; margin-left: 6px; }
+
+.disclaimer {
+  margin-top: 18px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--amber-dim);
+  letter-spacing: 0.06em;
+}
+
+/* ── Body grid ────────────────────────────────────────────────────────── */
+.body {
+  margin-top: 56px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 56px;
+}
+@media (max-width: 900px) {
+  .body { grid-template-columns: 1fr; gap: 32px; }
+  .side { position: static !important; }
+}
+
+.side {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.sideCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 22px 22px 24px;
+  position: relative;
+}
+.sideCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--amber-dim) 30%, var(--amber-dim) 70%, transparent);
+  opacity: 0.5;
+}
+.sideLabel {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--amber);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.sideRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 14px;
+}
+.sideRow:last-child { border: none; }
+.sideRow .k { color: var(--text-dim); font-style: italic; }
+.sideRow .v {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.navList { display: flex; flex-direction: column; gap: 2px; }
+.navList a {
+  display: block;
+  padding: 8px 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-left: 1px solid var(--line);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.navList a:hover { color: var(--amber-bright); }
+.navList a.active {
+  color: var(--amber-bright);
+  border-left-color: var(--amber);
+  background: rgba(212, 176, 120, 0.04);
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 8px 14px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s;
+}
+.backLink:hover { color: var(--amber-bright); border-color: var(--amber-dim); }
+
+/* ── Main column ──────────────────────────────────────────────────────── */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+.section { scroll-margin-top: 24px; }
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.sectionHead::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0;
+  width: 60px; height: 1px;
+  background: var(--amber);
+}
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.sectionSub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.prose {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.prose p + p { margin-top: 14px; }
+
+.empty {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--text-faint);
+  padding: 14px 0;
+}
+
+/* ── Gear tabs (Life / Energy Shield) ─────────────────────────────────── */
+.gearTabs {
+  display: flex;
+  gap: 4px;
+}
+.gearTab {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 7px 15px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.gearTab:hover {
+  color: var(--amber-bright);
+  border-color: var(--amber-dim);
+}
+.gearTabActive {
+  color: var(--bg-deep);
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.gearTabActive:hover {
+  color: var(--bg-deep);
+  background: var(--amber-bright);
+  border-color: var(--amber-bright);
+}
+
+/* ── Passive tree legend ──────────────────────────────────────────────── */
+.treeLegend {
+  margin-top: 14px;
+  display: flex;
+  gap: 28px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+.treeLegend span { display: inline-flex; align-items: center; gap: 8px; }
+.treeLegend .dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.ascRow {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+.ascLegend {
+  flex: 0 0 auto;
+  padding-top: 4px;
+}
+.ascLegend h4 {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.ascTier {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ascTier .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}

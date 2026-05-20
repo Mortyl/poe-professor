@@ -331,7 +331,7 @@ def main():
     parser.add_argument("--snapshots",   default="day-1,day-2,day-3,day-4",
                         help="Comma-separated time-machine labels, e.g. 'day-1,day-2,day-3,day-4'.")
     parser.add_argument("--experience-level", default="league_starter",
-                        choices=["league_starter"])
+                        choices=["league_starter", "endgame", "exotic"])
     parser.add_argument("--top-notables", type=int, default=50)
     parser.add_argument("--skip-gems",     action="store_true",
                         help="Skip gem report generation (write passives only). "

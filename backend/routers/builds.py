@@ -315,10 +315,10 @@ def _assign_melee_sub(skill: str, delivery: str, ascendancy: str, gem_tags: dict
 # ── Browse endpoint ────────────────────────────────────────────────────────
 
 @router.get("/browse")
-async def browse_builds(mode: str = Query(default="endgame", pattern="^(league_starter|endgame)$")):
+async def browse_builds(mode: str = Query(default="endgame", pattern="^(league_starter|endgame|exotic)$")):
     """
     Return all scraped builds grouped by archetype.
-    mode: 'league_starter' | 'endgame'  (controls which archetypes are visible)
+    mode: 'league_starter' | 'endgame' | 'exotic'  (controls which archetypes are visible)
     """
     if not os.path.exists(DB_PATH):
         return {"archetypes": [], "total": 0}

@@ -159,8 +159,19 @@ LONG_BREAK_EVERY        = 10            # take a long break after this many comb
 # Snapshot ranges for each pipeline step / mode
 HEATMAP_SNAPSHOTS          = "day-1,day-2,day-3,day-4"
 POB_SNAPSHOTS              = "day-2,day-3,day-4"
-HEATMAP_SNAPSHOTS_ENDGAME  = "week-2,week-3,week-4,week-5,week-6"
-POB_SNAPSHOTS_ENDGAME      = "week-2,week-3,week-4,week-5,week-6"
+HEATMAP_SNAPSHOTS_ENDGAME  = "week-2,week-3,week-4"
+POB_SNAPSHOTS_ENDGAME      = "week-2,week-3,week-4"
+# Exotic mode pools the widest window — for low-builds combos that don't hit
+# popular thresholds in either LS or EG. day-4..week-4 catches both campaign
+# clear-ers who never re-uploaded and slow-rampers who built late.
+HEATMAP_SNAPSHOTS_EXOTIC   = "day-4,day-5,day-6,week-1,week-2,week-3,week-4"
+POB_SNAPSHOTS_EXOTIC       = "day-4,day-5,day-6,week-1,week-2,week-3,week-4"
+
+# Popular thresholds — a combo qualifies as popular in a mode when its
+# builds_count for that mode is at or above the matching cutoff. Combos that
+# fail both qualify for exotic-bucket processing.
+POPULAR_LS_THRESHOLD = 90
+POPULAR_EG_THRESHOLD = 150
 
 
 def load_variants() -> dict[str, list[str]]:
@@ -783,6 +794,75 @@ def run_discovery(
     print(f"\nDiscovery complete — {new_count} combos queued, {skipped_count} skipped (duplicate tags)")
 
 
+def discover_exotic_from_db(conn: sqlite3.Connection, ascendancies: list[str] | None = None):
+    """
+    Derive the exotic-mode queue from existing LS and EG rows in the DB.
+
+    A (skill, ascendancy, variant_companion) tuple qualifies for exotic when
+    NEITHER its LS builds_count ≥ POPULAR_LS_THRESHOLD NOR its EG builds_count
+    ≥ POPULAR_EG_THRESHOLD. We borrow the larger of the two builds counts and
+    the most informative tag_signature so the exotic row is browsable.
+
+    Sequencing: this requires LS and EG discovery+scrape to have already run
+    so the DB reflects real per-mode builds_counts. Re-running is idempotent —
+    existing exotic rows for matching ascendancies are cleared first.
+    """
+    targets = set(ascendancies) if ascendancies else None
+
+    rows = conn.execute(
+        """
+        SELECT skill, ascendancy, variant_companion, mode, builds_count, tag_signature
+        FROM combos
+        WHERE mode IN ('league_starter', 'endgame')
+        """
+    ).fetchall()
+
+    # combos[(skill, asc, variant)] = {'league_starter': (count, tag), 'endgame': (count, tag)}
+    combos: dict[tuple[str, str, str], dict[str, tuple[int, str]]] = {}
+    for r in rows:
+        if targets and r["ascendancy"] not in targets:
+            continue
+        key = (r["skill"], r["ascendancy"], r["variant_companion"] or "")
+        combos.setdefault(key, {})[r["mode"]] = (
+            r["builds_count"] or 0,
+            r["tag_signature"] or "",
+        )
+
+    # Clear existing exotic rows for the in-scope ascendancies before re-deriving
+    if targets:
+        for asc in targets:
+            deleted = conn.execute(
+                "DELETE FROM combos WHERE ascendancy=? AND mode='exotic'", (asc,)
+            ).rowcount
+            if deleted:
+                print(f"  Cleared {deleted} existing exotic combo(s) for {asc}")
+    else:
+        deleted = conn.execute("DELETE FROM combos WHERE mode='exotic'").rowcount
+        if deleted:
+            print(f"  Cleared {deleted} existing exotic combo(s) (all ascendancies)")
+    conn.commit()
+
+    queued = skipped = 0
+    for (skill, asc, variant), modes in combos.items():
+        ls_count, ls_tag = modes.get("league_starter", (0, ""))
+        eg_count, eg_tag = modes.get("endgame",        (0, ""))
+
+        if ls_count >= POPULAR_LS_THRESHOLD or eg_count >= POPULAR_EG_THRESHOLD:
+            skipped += 1
+            continue
+
+        builds_count = max(ls_count, eg_count)
+        tag_sig      = ls_tag or eg_tag or ""
+
+        variant_label = f" + {variant}" if variant else ""
+        print(f"  QUEUE EXOTIC {skill}{variant_label} / {asc} "
+              f"(LS={ls_count}, EG={eg_count} → exotic n={builds_count})")
+        upsert_combo(conn, skill, asc, tag_sig, builds_count, variant, mode='exotic')
+        queued += 1
+
+    print(f"\nExotic discovery complete — {queued} queued, {skipped} already popular")
+
+
 # ── Pipeline execution ──────────────────────────────────────────────────────────
 
 # scrape_poeninja.py paces itself with ~5s/character + ~17s/snapshot to dodge poe.ninja
@@ -796,11 +876,16 @@ def run_step(cmd: list[str], label: str) -> tuple[bool, str]:
     print(f"  [{label}] {' '.join(cmd)}")
     timeout = STEP_TIMEOUT_POB if label == "pob" else STEP_TIMEOUT_DEFAULT
     try:
+        # encoding="utf-8" + errors="replace" — child scripts emit UTF-8, but
+        # subprocess defaults to the system codepage on Windows (cp1252) which
+        # crashes the reader thread on bytes like 0x8f. replace = no fatal decode.
         result = subprocess.run(
             cmd,
             cwd=BASE_DIR,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
         )
         if result.returncode != 0:
@@ -819,77 +904,107 @@ def run_step(cmd: list[str], label: str) -> tuple[bool, str]:
 
 
 def run_pipeline_for_combo(conn: sqlite3.Connection, skill: str, ascendancy: str,
-                           variant_companion: str = '', mode: str = 'league_starter'):
+                           variant_companion: str = '', mode: str = 'league_starter',
+                           already_done: dict | None = None):
+    """Run the 4-step pipeline for one combo.
+
+    already_done: per-step completion flags from the DB row. When a step is True
+    it's skipped (no subprocess, no sleep). Lets an interrupted run pick up at
+    the first step that hadn't completed instead of repeating heatmap/pob/etc.
+    """
     py = sys.executable
-    is_endgame     = mode == 'endgame'
-    heatmap_snaps  = HEATMAP_SNAPSHOTS_ENDGAME if is_endgame else HEATMAP_SNAPSHOTS
-    pob_snaps      = POB_SNAPSHOTS_ENDGAME     if is_endgame else POB_SNAPSHOTS
-    exp_level      = mode  # 'league_starter' or 'endgame'
+    if mode == 'exotic':
+        heatmap_snaps = HEATMAP_SNAPSHOTS_EXOTIC
+        pob_snaps     = POB_SNAPSHOTS_EXOTIC
+    elif mode == 'endgame':
+        heatmap_snaps = HEATMAP_SNAPSHOTS_ENDGAME
+        pob_snaps     = POB_SNAPSHOTS_ENDGAME
+    else:
+        heatmap_snaps = HEATMAP_SNAPSHOTS
+        pob_snaps     = POB_SNAPSHOTS
+    exp_level = mode  # 'league_starter' | 'endgame' | 'exotic'
+
+    done = already_done or {}
 
     variant_label = f" + {variant_companion}" if variant_companion else ""
     print(f"\n{'─'*60}")
     print(f"  {skill}{variant_label} / {ascendancy}  [mode={mode}]")
     print(f"{'─'*60}")
+    skipped = [k for k, v in done.items() if v]
+    if skipped:
+        print(f"  Already done: {', '.join(skipped)} (skipping)")
 
     # Step 1 — Passive heatmap (variants share the base heatmap — no variant flag here)
-    ok, err = run_step([
-        py, "scrape_heatmap.py",
-        "--skill", skill,
-        "--ascendancy", ascendancy,
-        "--snapshots", heatmap_snaps,
-        "--experience-level", exp_level,
-        "--skip-gems",
-    ], "heatmap")
-    mark_step(conn, skill, ascendancy, "passives", ok, err, variant_companion, mode)
-    if not ok:
-        return
-    time.sleep(random.uniform(*DELAY_API_RANGE))
+    if done.get("passives"):
+        print("  [heatmap] SKIP (already done)")
+    else:
+        ok, err = run_step([
+            py, "scrape_heatmap.py",
+            "--skill", skill,
+            "--ascendancy", ascendancy,
+            "--snapshots", heatmap_snaps,
+            "--experience-level", exp_level,
+            "--skip-gems",
+        ], "heatmap")
+        mark_step(conn, skill, ascendancy, "passives", ok, err, variant_companion, mode)
+        if not ok:
+            return
+        time.sleep(random.uniform(*DELAY_API_RANGE))
 
     # Step 2 — PoB export scrape
-    pob_cmd = [
-        py, "scrape_poeninja.py",
-        "--skill", skill,
-        "--ascendancy", ascendancy,
-        "--no-latest",
-        "--snapshots", pob_snaps,
-        "--append",
-    ]
-    if variant_companion:
-        pob_cmd += ["--variant-skill", variant_companion]
-    ok, err = run_step(pob_cmd, "pob")
-    mark_step(conn, skill, ascendancy, "pob", ok, err, variant_companion, mode)
-    if not ok:
-        return
-    time.sleep(random.uniform(*DELAY_API_RANGE))
+    if done.get("pob"):
+        print("  [pob] SKIP (already done)")
+    else:
+        pob_cmd = [
+            py, "scrape_poeninja.py",
+            "--skill", skill,
+            "--ascendancy", ascendancy,
+            "--no-latest",
+            "--snapshots", pob_snaps,
+            "--append",
+        ]
+        if variant_companion:
+            pob_cmd += ["--variant-skill", variant_companion]
+        ok, err = run_step(pob_cmd, "pob")
+        mark_step(conn, skill, ascendancy, "pob", ok, err, variant_companion, mode)
+        if not ok:
+            return
+        time.sleep(random.uniform(*DELAY_API_RANGE))
 
     # Step 3 — Gear analysis
-    gear_cmd = [
-        py, "analyse_gear.py",
-        "--skill", skill,
-        "--ascendancy", ascendancy,
-        "--experience-level", exp_level,
-    ]
-    if variant_companion:
-        gear_cmd += ["--variant-skill", variant_companion]
-    ok, err = run_step(gear_cmd, "gear")
-    mark_step(conn, skill, ascendancy, "gear", ok, err, variant_companion, mode)
-    if not ok:
-        return
-    time.sleep(random.uniform(*DELAY_API_RANGE))
+    if done.get("gear"):
+        print("  [gear] SKIP (already done)")
+    else:
+        gear_cmd = [
+            py, "analyse_gear.py",
+            "--skill", skill,
+            "--ascendancy", ascendancy,
+            "--experience-level", exp_level,
+        ]
+        if variant_companion:
+            gear_cmd += ["--variant-skill", variant_companion]
+        ok, err = run_step(gear_cmd, "gear")
+        mark_step(conn, skill, ascendancy, "gear", ok, err, variant_companion, mode)
+        if not ok:
+            return
+        time.sleep(random.uniform(*DELAY_API_RANGE))
 
     # Step 4 — Gem link analysis
-    gems_cmd = [
-        py, "analyse_gems.py",
-        "--skill", skill,
-        "--ascendancy", ascendancy,
-        "--experience-level", exp_level,
-    ]
-    if variant_companion:
-        gems_cmd += ["--variant-skill", variant_companion]
-    ok, err = run_step(gems_cmd, "gems")
-    mark_step(conn, skill, ascendancy, "gems", ok, err, variant_companion, mode)
-    if not ok:
-        return
+    if done.get("gems"):
+        print("  [gems] SKIP (already done)")
+    else:
+        gems_cmd = [
+            py, "analyse_gems.py",
+            "--skill", skill,
+            "--ascendancy", ascendancy,
+            "--experience-level", exp_level,
+        ]
+        if variant_companion:
+            gems_cmd += ["--variant-skill", variant_companion]
+        ok, err = run_step(gems_cmd, "gems")
+        mark_step(conn, skill, ascendancy, "gems", ok, err, variant_companion, mode)
+        if not ok:
+            return
 
     mark_done(conn, skill, ascendancy, variant_companion, mode)
     print(f"  DONE ✓")
@@ -994,8 +1109,9 @@ def audit_pipeline(conn: sqlite3.Connection, fix: bool = False, league: str = 's
         slug = _slug_for(r["skill"], r["ascendancy"], r["variant_companion"], league)
         combos_by_slug[slug] = r
 
-    ls_expected = set(POB_SNAPSHOTS.split(","))
-    eg_expected = set(POB_SNAPSHOTS_ENDGAME.split(","))
+    ls_expected     = set(POB_SNAPSHOTS.split(","))
+    eg_expected     = set(POB_SNAPSHOTS_ENDGAME.split(","))
+    exotic_expected = set(POB_SNAPSHOTS_EXOTIC.split(","))
 
     issues: list[tuple[str, sqlite3.Row, set[str]]] = []
     audited = 0
@@ -1030,7 +1146,12 @@ def audit_pipeline(conn: sqlite3.Connection, fix: bool = False, league: str = 's
         status  = combo["status"]  if combo else "not-in-db"
         builds  = combo["builds_count"] if combo else None
         ascendancy = combo["ascendancy"] if combo else ""
-        expected = ls_expected if mode == "league_starter" else eg_expected
+        if mode == "exotic":
+            expected = exotic_expected
+        elif mode == "endgame":
+            expected = eg_expected
+        else:
+            expected = ls_expected
 
         # Subtract snapshots that are legitimately empty for this ascendancy —
         # e.g. newly-released ascendancies during their first league.
@@ -1098,9 +1219,12 @@ def main():
     parser.add_argument("--min-builds", type=int, default=MIN_BUILDS,
                         help=f"Min builds for a combo to be scraped (default {MIN_BUILDS})")
     parser.add_argument("--mode",       default="league_starter",
-                        choices=["league_starter", "endgame"],
+                        choices=["league_starter", "endgame", "exotic"],
                         help="Pipeline mode: league_starter uses day 1-4 snapshots, "
-                             "endgame uses week 2-6 snapshots (default: league_starter)")
+                             "endgame uses week 2-4 snapshots, exotic pools day-4..week-4 "
+                             "for sub-meta combos (default: league_starter). "
+                             "Exotic derives its queue from existing LS/EG rows — "
+                             "LS and EG must complete first.")
     args = parser.parse_args()
 
     conn = init_db()
@@ -1118,30 +1242,39 @@ def main():
 
     # ── Discovery phase ────────────────────────────────────────────────────────
     if not args.resume:
-        print(f"Getting snapshot info [{args.league.upper()}] mode={mode}...")
-        snapshot, snapshot_name, available_labels = get_snapshot(args.league)
-        print(f"  Snapshot : {snapshot} ({snapshot_name})")
-        print(f"  Available: {sorted(available_labels)}")
-        time.sleep(random.uniform(*DELAY_API_RANGE))
-
-        # Use a representative label for discovery — endgame uses week-2/3
-        if mode == "endgame":
-            preferred = ["week-3", "week-2", "week-4", "week-5", "week-6"]
+        if mode == "exotic":
+            # Exotic derives its queue from existing LS/EG rows rather than
+            # re-querying poe.ninja. No snapshot/labels needed.
+            print(f"Deriving exotic queue from existing LS/EG combos in {DB_PATH}...")
+            discover_exotic_from_db(
+                conn,
+                ascendancies if args.ascendancy else None,
+            )
         else:
-            preferred = ["day-4", "day-3", "day-2", "day-1"]
-        label = next((l for l in preferred if l in available_labels), "")
-        if not label and available_labels:
-            label = available_labels[0]
-        if not label:
-            print("ERROR: no time-machine labels available")
-            return
-        print(f"  Using label '{label}' for discovery\n")
+            print(f"Getting snapshot info [{args.league.upper()}] mode={mode}...")
+            snapshot, snapshot_name, available_labels = get_snapshot(args.league)
+            print(f"  Snapshot : {snapshot} ({snapshot_name})")
+            print(f"  Available: {sorted(available_labels)}")
+            time.sleep(random.uniform(*DELAY_API_RANGE))
 
-        # Load gem tags for deduplication (local file — poe.ninja has no PoE2 gem API)
-        print("Loading gem tags...")
-        gem_tags = load_gem_tags()
+            # Use a representative label for discovery — endgame uses week-2/3
+            if mode == "endgame":
+                preferred = ["week-4", "week-3", "week-2", "week-5", "week-6"]
+            else:
+                preferred = ["day-4", "day-3", "day-2", "day-1"]
+            label = next((l for l in preferred if l in available_labels), "")
+            if not label and available_labels:
+                label = available_labels[0]
+            if not label:
+                print("ERROR: no time-machine labels available")
+                return
+            print(f"  Using label '{label}' for discovery\n")
 
-        run_discovery(conn, ascendancies, snapshot, snapshot_name, label, gem_tags, args.min_builds, mode)
+            # Load gem tags for deduplication (local file — poe.ninja has no PoE2 gem API)
+            print("Loading gem tags...")
+            gem_tags = load_gem_tags()
+
+            run_discovery(conn, ascendancies, snapshot, snapshot_name, label, gem_tags, args.min_builds, mode)
 
     if args.discover:
         print("\nDiscovery complete. Run without --discover to start the pipeline.")
@@ -1156,7 +1289,9 @@ def main():
         params.append(args.ascendancy)
 
     combos = conn.execute(
-        f"SELECT skill, ascendancy, variant_companion, mode FROM combos WHERE {where} ORDER BY builds_count DESC",
+        f"SELECT skill, ascendancy, variant_companion, mode, "
+        f"passives_done, pob_done, gear_done, gems_done "
+        f"FROM combos WHERE {where} ORDER BY builds_count DESC",
         params,
     ).fetchall()
 
@@ -1164,8 +1299,14 @@ def main():
 
     for i, row in enumerate(combos, 1):
         skill, ascendancy, variant_companion = row["skill"], row["ascendancy"], row["variant_companion"]
+        already_done = {
+            "passives": bool(row["passives_done"]),
+            "pob":      bool(row["pob_done"]),
+            "gear":     bool(row["gear_done"]),
+            "gems":     bool(row["gems_done"]),
+        }
         print(f"\n[{i}/{len(combos)}]")
-        run_pipeline_for_combo(conn, skill, ascendancy, variant_companion, mode)
+        run_pipeline_for_combo(conn, skill, ascendancy, variant_companion, mode, already_done)
         if i < len(combos):
             if i % LONG_BREAK_EVERY == 0:
                 pause = random.uniform(*DELAY_LONG_BREAK_RANGE)

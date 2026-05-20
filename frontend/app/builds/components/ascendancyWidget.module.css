@@ -1,0 +1,175 @@
+/* Ascendancy widget — Maxroll-style circular portrait with title pennant,
+   static tree canvas overlay, and tier indicator buttons below.
+   Pure CSS (no vendored third-party PNGs). */
+
+.wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+}
+
+/* ── Title pennant — pointed-end medieval strap with gradient + side chevrons ── */
+.titleBanner {
+  position: relative;
+  z-index: 3;
+  padding: 9px 56px;
+  margin-bottom: -22px;
+  background:
+    linear-gradient(180deg, rgba(50,38,20,0.95) 0%, rgba(18,14,8,0.95) 100%),
+    radial-gradient(ellipse at center, rgba(212,176,120,0.25), transparent 60%);
+  background-blend-mode: normal, screen;
+  box-shadow:
+    0 0 0 1px var(--amber-dim),
+    0 0 0 3px rgba(0,0,0,0.7),
+    0 0 0 4px rgba(212,176,120,0.4),
+    0 4px 16px rgba(0,0,0,0.7);
+  /* Pointed-end pennant — pinch the L/R edges in slightly */
+  clip-path: polygon(
+    8px 0%, calc(100% - 8px) 0%,
+    100% 50%, calc(100% - 8px) 100%,
+    8px 100%, 0% 50%
+  );
+}
+.titleBannerText {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--amber-bright);
+  text-transform: uppercase;
+  text-shadow:
+    0 0 12px rgba(212, 176, 120, 0.5),
+    0 1px 0 rgba(0,0,0,0.8);
+  white-space: nowrap;
+}
+
+/* ── Circular portrait container — heavy multi-ring gold border ─────────── */
+.portrait {
+  position: relative;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  overflow: hidden;
+  /* Stacked gold rings for that chunky metallic-rim look */
+  box-shadow:
+    inset 0 0 0 2px rgba(212,176,120,0.55),    /* inner gold edge */
+    inset 0 0 0 4px rgba(0,0,0,0.85),          /* dark gap */
+    inset 0 0 0 6px rgba(212,176,120,0.35),    /* mid ring */
+    inset 0 0 24px rgba(0,0,0,0.55),           /* inner vignette */
+    0 0 0 1px rgba(0,0,0,0.9),                 /* outer hairline */
+    0 0 0 3px rgba(212,176,120,0.5),           /* outer gold ring */
+    0 0 0 4px rgba(0,0,0,0.9),
+    0 0 28px rgba(0,0,0,0.75);                 /* drop shadow */
+  background: var(--bg-deep);
+}
+.portrait > div { width: 100%; height: 100%; }
+.portrait canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  cursor: default !important;
+}
+
+/* ── Tier indicator row at the bottom ──────────────────────────────────── */
+.tierRow {
+  margin-top: 20px;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+.tierDot {
+  /* Button reset */
+  appearance: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-display);
+  outline: none;
+
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), transparent 60%),
+    radial-gradient(circle at 50% 100%, rgba(0,0,0,0.7), transparent 70%),
+    #0a0a10;
+  box-shadow:
+    inset 0 0 0 1px rgba(212,176,120,0.4),
+    inset 0 0 0 2px rgba(0,0,0,0.9),
+    inset 0 0 12px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(0,0,0,0.85),
+    0 0 0 2px rgba(212,176,120,0.5),
+    0 2px 6px rgba(0,0,0,0.6);
+  color: rgba(212,176,120,0.45);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+.tierDot:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.tierDot:disabled {
+  cursor: default;
+}
+.tierDotActive {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* Filled tier — coloured rim + glow */
+.tierDotFilled {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,0.22), transparent 60%),
+    radial-gradient(circle at 50% 100%, rgba(0,0,0,0.6), transparent 70%),
+    rgba(8,8,12,1);
+  color: #fff;
+  text-shadow:
+    0 0 8px currentColor,
+    0 1px 0 rgba(0,0,0,0.8);
+}
+/* All filled tiers share the same gold rim — clicking lights up just that one */
+.tierDotFilled.tier1,
+.tierDotFilled.tier2,
+.tierDotFilled.tier3,
+.tierDotFilled.tier4 {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,232,150,0.55),
+    inset 0 0 0 2px rgba(0,0,0,0.85),
+    inset 0 0 14px rgba(232,200,74,0.12),
+    0 0 0 1px rgba(0,0,0,0.85),
+    0 0 0 2px rgba(212,176,120,0.65),
+    0 2px 6px rgba(0,0,0,0.6);
+}
+
+/* Active (currently selected) tier — brighter gold + glow */
+.tierDotActive.tierDotFilled.tier1,
+.tierDotActive.tierDotFilled.tier2,
+.tierDotActive.tierDotFilled.tier3,
+.tierDotActive.tierDotFilled.tier4 {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,232,150,0.85),
+    inset 0 0 0 2px rgba(0,0,0,0.85),
+    inset 0 0 18px rgba(232,200,74,0.35),
+    0 0 0 1px rgba(0,0,0,0.85),
+    0 0 0 3px #e8c84a,
+    0 0 18px rgba(232,200,74,0.7),
+    0 3px 8px rgba(0,0,0,0.7);
+}
+
+.tierDotEmpty {
+  color: rgba(212,176,120,0.35);
+  opacity: 0.55;
+}

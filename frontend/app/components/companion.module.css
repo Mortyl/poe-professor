@@ -1,4 +1,4 @@
-/* companion.module.css */
+﻿/* companion.module.css */
 
 .companionRoot {
   position: fixed;
@@ -19,14 +19,14 @@
 /* Greeting bubble */
 .greetingBubble {
   position: relative;
-  background: #111118;
-  border: 1px solid #c8963c;
+  background: #0c1018;
+  border: 1px solid #d4b078;
   border-radius: 6px;
   padding: 10px 14px;
   font-family: 'Rajdhani', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #c8b89a;
+  color: #7a8090;
   letter-spacing: 0.03em;
   cursor: pointer;
   white-space: nowrap;
@@ -36,8 +36,8 @@
 }
 
 .greetingBubble:hover {
-  background: #1a1500;
-  color: #e8b84a;
+  background: #161c28;
+  color: #f0d098;
 }
 
 .greetingTail {
@@ -46,9 +46,9 @@
   right: 22px;
   width: 12px;
   height: 12px;
-  background: #111118;
-  border-right: 1px solid #c8963c;
-  border-bottom: 1px solid #c8963c;
+  background: #0c1018;
+  border-right: 1px solid #d4b078;
+  border-bottom: 1px solid #d4b078;
   transform: rotate(45deg);
 }
 
@@ -59,8 +59,8 @@
 
 .chatPanel {
   width: 380px;
-  background: #111118;
-  border: 1px solid #2a2a3a;
+  background: #0c1018;
+  border: 1px solid #1a2030;
   border-radius: 6px;
   overflow: hidden;
   display: flex;
@@ -76,8 +76,8 @@
 }
 
 .chatHeader {
-  background: #0d0d14;
-  border-bottom: 1px solid #2a2a3a;
+  background: #0c1018;
+  border-bottom: 1px solid #1a2030;
   padding: 10px 14px;
   display: flex;
   align-items: center;
@@ -95,8 +95,8 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 1px solid #c8963c;
-  background: #2a2000;
+  border: 1px solid #d4b078;
+  background: #1e2638;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -111,7 +111,7 @@
 .headerName {
   font-family: 'Cinzel', serif;
   font-size: 16px;
-  color: #e8d4a8;
+  color: #d8d4c8;
   letter-spacing: 0.06em;
 }
 
@@ -126,7 +126,7 @@
 .closeBtn {
   background: none;
   border: none;
-  color: #4a4a6a;
+  color: #7a8090;
   font-size: 12px;
   cursor: pointer;
   padding: 2px 4px;
@@ -134,7 +134,7 @@
   transition: color 0.15s;
 }
 
-.closeBtn:hover { color: #c8963c; }
+.closeBtn:hover { color: #d4b078; }
 
 .messages {
   flex: 1;
@@ -144,12 +144,12 @@
   flex-direction: column;
   gap: 8px;
   scrollbar-width: thin;
-  scrollbar-color: #2a2a3a transparent;
+  scrollbar-color: #1a2030 transparent;
 }
 
 .messages::-webkit-scrollbar { width: 4px; }
 .messages::-webkit-scrollbar-track { background: transparent; }
-.messages::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+.messages::-webkit-scrollbar-thumb { background: #1a2030; border-radius: 2px; }
 
 .message {
   font-family: 'Rajdhani', sans-serif;
@@ -163,16 +163,16 @@
 }
 
 .messageCompanion {
-  background: #1a1500;
+  background: #161c28;
   border: 1px solid #2a1a00;
-  color: #c8b89a;
+  color: #7a8090;
   align-self: flex-start;
 }
 
 .messageUser {
   background: #111128;
-  border: 1px solid #2a2a4a;
-  color: #7a7a9a;
+  border: 1px solid #1a2030;
+  color: #7a8090;
   align-self: flex-end;
 }
 
@@ -188,7 +188,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #c8963c;
+  background: #d4b078;
   animation: bounce 1.2s infinite;
 }
 
@@ -201,7 +201,7 @@
 }
 
 .inputRow {
-  border-top: 1px solid #2a2a3a;
+  border-top: 1px solid #1a2030;
   padding: 8px;
   display: flex;
   gap: 6px;
@@ -210,10 +210,10 @@
 
 .input {
   flex: 1;
-  background: #0d0d14;
-  border: 1px solid #2a2a3a;
+  background: #0c1018;
+  border: 1px solid #1a2030;
   border-radius: 2px;
-  color: #c8b89a;
+  color: #7a8090;
   font-family: 'Rajdhani', sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -222,14 +222,14 @@
   transition: border-color 0.15s;
 }
 
-.input:focus { border-color: #c8963c55; }
-.input::placeholder { color: #3a3a5a; }
+.input:focus { border-color: #d4b07855; }
+.input::placeholder { color: #3a4050; }
 .input:disabled { opacity: 0.5; }
 
 .sendBtn {
-  background: #1a1500;
-  border: 1px solid #c8963c;
-  color: #c8963c;
+  background: #161c28;
+  border: 1px solid #d4b078;
+  color: #d4b078;
   font-size: 16px;
   width: 42px;
   height: 42px;
@@ -243,8 +243,8 @@
 }
 
 .sendBtn:hover:not(:disabled) {
-  background: #2a2000;
-  color: #e8b84a;
+  background: #1e2638;
+  color: #f0d098;
 }
 
 .sendBtn:disabled {
@@ -257,24 +257,24 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: #1a1500;
-  border: 2px solid #c8963c;
+  background: #161c28;
+  border: 2px solid #d4b078;
   cursor: pointer;
   overflow: hidden;
   position: relative;
   transition: all 0.2s;
-  box-shadow: 0 4px 20px #c8963c33;
+  box-shadow: 0 4px 20px #d4b07833;
   flex-shrink: 0;
 }
 
 .avatarBtn:hover {
   transform: scale(1.06);
-  box-shadow: 0 4px 28px #c8963c55;
+  box-shadow: 0 4px 28px #d4b07855;
 }
 
 .avatarBtnOpen {
-  border-color: #e8b84a;
-  box-shadow: 0 4px 28px #c8963c66;
+  border-color: #f0d098;
+  box-shadow: 0 4px 28px #d4b07866;
 }
 
 .avatarImg {
@@ -296,6 +296,6 @@
 }
 
 .message p { margin: 0; }
-.message strong { color: #e8b84a; }
+.message strong { color: #f0d098; }
 .message ul { margin: 6px 0; padding-left: 16px; }
 .message li { margin: 2px 0; }
