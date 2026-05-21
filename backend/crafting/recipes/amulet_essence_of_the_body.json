@@ -29,13 +29,13 @@
       "verb": "Orb of Transmutation",
       "currency": "Orb of Transmutation",
       "qty": 1,
-      "outcome": "Upgrades the normal amulet to magic with one random modifier."
+      "outcome": "Normal → Magic with one random modifier. (Optionally also Augment to fill the second magic mod before essencing — both magic mods will carry over to the rare.)"
     },
     {
-      "verb": "Lesser Essence of the Body (or higher tier)",
+      "verb": "Lesser Essence of the Body",
       "currency": "Lesser Essence of the Body",
       "qty": 1,
-      "outcome": "Upgrades the magic amulet to rare with a guaranteed +maximum Life modifier. Use Greater or Perfect tier if your item is ilvl 35+/50+ to roll higher-tier mods."
+      "outcome": "Magic → Rare. Existing magic modifier(s) are PRESERVED and the essence's guaranteed +maximum Life mod is added on top. So a 1-mod Magic becomes a 2-mod Rare; a 2-mod Magic becomes a 3-mod Rare."
     },
     {
       "verb": "Exalt to fill",
@@ -46,6 +46,6 @@
   ],
   "estimated_cost_chaos_range": [25, 65],
   "estimated_success_pct": 55,
-  "notes_for_user": "Most reliable budget path. The guaranteed Life is your floor — even if Exalt slams land badly, the amulet is wearable. Advanced: use 'Omen of Dextral Exaltation' (held in inventory before exalting) to force suffix-only rolls and protect any open prefixes for later mod control.",
+  "notes_for_user": "Most reliable budget path. The guaranteed Life is your floor — even if Exalt slams land badly, the amulet is wearable. **Avoid using Greater Essence on a low-ilvl base** — Greater essences work on any ilvl but they bump the resulting item's required level (e.g. Greater essence on ilvl 15 → required level 48 to equip). For mid-game crafting stay on Lesser. Advanced: 'Omen of Dextral Exaltation' (held in inventory before exalting) forces suffix-only rolls and protects open prefixes for later mod control.",
   "skill_floor": "beginner"
 }

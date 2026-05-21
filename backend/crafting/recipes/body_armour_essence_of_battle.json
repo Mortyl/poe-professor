@@ -31,23 +31,23 @@
       "verb": "Orb of Transmutation",
       "currency": "Orb of Transmutation",
       "qty": 1,
-      "outcome": "Normal → Magic with one random modifier."
+      "outcome": "Normal → Magic with one random modifier. (Optionally also Augment to add a second magic mod — both will be preserved through the next essence step.)"
     },
     {
-      "verb": "Lesser Essence of the Body (or higher tier)",
+      "verb": "Lesser Essence of the Body",
       "currency": "Lesser Essence of the Body",
       "qty": 1,
-      "outcome": "Magic → Rare with a guaranteed +maximum Life modifier. Step up to Greater or Perfect tier if the base is ilvl 35+/50+ to roll higher-tier mods."
+      "outcome": "Magic → Rare. The magic modifier(s) are PRESERVED and the essence adds its guaranteed +maximum Life mod. A 1-mod Magic becomes a 2-mod Rare; a 2-mod Magic becomes a 3-mod Rare."
     },
     {
       "verb": "Exalt for resistances + defence",
       "currency": "Exalted Orb",
       "qty": 3,
-      "outcome": "Each Exalt adds one random mod (up to 6 total). Aim for at least 2 resistance rolls before stopping. Quality of mods scales with item level — high ilvl bases roll bigger numbers."
+      "outcome": "Each Exalt adds one random mod (up to 6 total). Aim for at least 2 resistance rolls before stopping. Mod tier scales with item level — high ilvl bases roll bigger numbers."
     }
   ],
   "estimated_cost_chaos_range": [50, 110],
   "estimated_success_pct": 60,
-  "notes_for_user": "Solid baseline body armour. The Life mod is your floor — even if Exalt fills are middling, the result is wearable. For a tankier build, use a strength-base armour (e.g. Plate Vest) so the Life prefix tiers higher. Advanced: 'Omen of Sinistral Exaltation' forces prefix-only adds, useful if you want to lock in defensive prefixes.",
+  "notes_for_user": "Solid baseline body armour. The Life mod is your floor. For a tankier build, use a strength-base armour (e.g. Plate Vest) so the Life prefix tiers higher. **Avoid Greater Essence on a low-ilvl chest** — it works mechanically but bumps the required level (e.g. Greater on ilvl 15 → required level 48 to equip). Advanced: 'Omen of Sinistral Exaltation' forces prefix-only Exalts, useful for locking defensive prefixes.",
   "skill_floor": "beginner"
 }
