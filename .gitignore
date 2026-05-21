@@ -51,3 +51,8 @@ backend/poe_ninja_*.mjs
 
 # Frontend mockups (local-only design exploration)
 mockups/
+
+# User database (SQLite for Auth.js — contains user PII, sessions, OAuth tokens)
+frontend/users.db
+frontend/users.db-shm
+frontend/users.db-wal
