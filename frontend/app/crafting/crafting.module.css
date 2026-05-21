@@ -456,6 +456,15 @@
   padding: 2px 8px;
   background: rgba(212, 176, 120, 0.08);
   border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.currencyIcon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  image-rendering: pixelated;   /* PoE icons are small PNGs — keep them crisp */
 }
 .stepOutcome {
   font-size: 13px;

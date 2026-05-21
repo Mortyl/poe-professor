@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { itemIconPath } from "./icons";
+import { itemIconPath } from "@/lib/icons";
 
 interface UniqueItem {
   name: string;

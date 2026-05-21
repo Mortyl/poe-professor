@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import GemLinksPanel from "./GemLinksPanel";
-import { skillIconPath, ascendancyIconPath, skillInitial } from "./icons";
+import { skillIconPath, ascendancyIconPath, skillInitial } from "@/lib/icons";
 import styles from "./editorial.module.css";
 
 // ── Shared types — mirror the BuildGuide shape from page.tsx ────────────────

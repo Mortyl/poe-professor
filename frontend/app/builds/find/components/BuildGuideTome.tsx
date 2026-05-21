@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import GearPanel from "./GearPanel";
 import PassiveTreeCanvas from "./PassiveTreeCanvasPixi";
 import AscendancyWidget from "./AscendancyWidget";
-import { itemIconPath, skillInitial } from "./icons";
+import { itemIconPath, skillInitial } from "@/lib/icons";
 import styles from "./tome.module.css";
 
 // ── Shared types — mirror the BuildGuide shape from page.tsx ────────────────

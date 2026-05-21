@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { goalsForClass, type CommonGoal } from "./common-goals";
+// Shared icon helper — itemIcons.json contains every PoE2 item including
+// currency/essences/omens, so itemIconPath works for those too.
+import { itemIconPath } from "@/lib/icons";
 import styles from "./crafting.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -351,20 +354,31 @@ function RecipeCard({
           )}
 
           <ol className={styles.stepList}>
-            {recipe.steps.map((s, i) => (
-              <li key={i} className={styles.stepItem}>
-                <div className={styles.stepHeader}>
-                  <span className={styles.stepNumber}>{i + 1}</span>
-                  <span className={styles.stepVerb}>{s.verb}</span>
-                  {s.currency && (
-                    <span className={styles.stepCurrency}>
-                      {s.qty !== 1 ? `${s.qty}× ` : ""}{s.currency}
-                    </span>
-                  )}
-                </div>
-                <div className={styles.stepOutcome}>{s.outcome}</div>
-              </li>
-            ))}
+            {recipe.steps.map((s, i) => {
+              const iconUrl = s.currency ? itemIconPath(s.currency) : null;
+              return (
+                <li key={i} className={styles.stepItem}>
+                  <div className={styles.stepHeader}>
+                    <span className={styles.stepNumber}>{i + 1}</span>
+                    <span className={styles.stepVerb}>{s.verb}</span>
+                    {s.currency && (
+                      <span className={styles.stepCurrency}>
+                        {iconUrl && (
+                          <img
+                            src={iconUrl}
+                            alt=""
+                            className={styles.currencyIcon}
+                            aria-hidden
+                          />
+                        )}
+                        {s.qty !== 1 ? `${s.qty}× ` : ""}{s.currency}
+                      </span>
+                    )}
+                  </div>
+                  <div className={styles.stepOutcome}>{s.outcome}</div>
+                </li>
+              );
+            })}
           </ol>
 
           {recipe.notes_for_user && (
