@@ -13,7 +13,7 @@
 # ──────────────────────────────────────────────
 Ranger1:
   free_nodes:
-    - 42416  # Projectile Proximity Specialisation (junction between Point Blank and Far Shot)
+    - 42416  # Projectile Proximity Specialisation — free gateway; Point Blank/Far Shot are the actual paid choices
   exclusive_groups:
     - [41875, 59542]  # Point Blank vs Far Shot
 

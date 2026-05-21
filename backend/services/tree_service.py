@@ -574,7 +574,11 @@ def _recommend_asc_tiers(
                     if has_new:
                         continue  # n2 opens further branches — not a terminal endpoint
 
-                score = max(adoption.get(n1, 0.0), adoption.get(n2, 0.0))
+                # Primary: highest adoption in the pair. Tiebreaker: n2 adoption.
+                # This ensures e.g. Point Blank (56%) beats Far Shot (13%) when
+                # both tie on the primary score (both driven by the travel node).
+                n2_pct = adoption.get(n2, 0.0)
+                score = max(adoption.get(n1, 0.0), n2_pct) + n2_pct * 1e-4
                 if score > best_score:
                     best_score = score
                     best_pair  = (n1, n2)
