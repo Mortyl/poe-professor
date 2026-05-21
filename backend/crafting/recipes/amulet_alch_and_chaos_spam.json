@@ -1,11 +1,11 @@
 {
   "id": "amulet_alch_and_chaos_spam",
-  "name": "Alchemy + Chaos spam",
-  "description": "Brute-force a rare amulet by alching once, then chaos-spamming until you hit usable mods. Pure RNG, no guarantees, but cheap per attempt.",
+  "name": "Alchemy + Chaos spam (Normal start)",
+  "description": "Brute-force a rare amulet by alching once, then Chaos-swapping bad mods one at a time until usable. No guarantees, but cheap and fast when essences aren't available.",
   "applies_to": {
     "item_classes": ["Amulet"],
-    "min_ilvl": 60,
-    "starting_rarity": ["normal"]
+    "min_ilvl": 1,
+    "starting_rarity": ["normal", "magic"]
   },
   "guaranteed_mod_families": [],
   "rollable_mod_families": [
@@ -29,20 +29,20 @@
   ],
   "steps": [
     {
-      "verb": "Orb of Alchemy on a normal amulet",
+      "verb": "Orb of Alchemy",
       "currency": "Orb of Alchemy",
       "qty": 1,
-      "outcome": "Rarity to rare with 4 random mods."
+      "outcome": "Upgrades the amulet to rare with 4 random modifiers."
     },
     {
-      "verb": "Chaos Orb until usable",
+      "verb": "Chaos Orb on bad mods",
       "currency": "Chaos Orb",
-      "qty": 20,
-      "outcome": "Each Chaos rerolls ALL mods. Average expect ~20 attempts before hitting a 2-good-mod combo. Set a hard budget — don't sink past it."
+      "qty": 8,
+      "outcome": "Each Chaos Orb removes one random modifier and adds a new random one (single-mod swap, not a full reroll). Keep using when you still have a clearly bad mod; stop once the item is workable. Set a hard chaos budget — variance can be wild."
     }
   ],
-  "estimated_cost_chaos_range": [20, 60],
-  "estimated_success_pct": 30,
-  "notes_for_user": "Maximum variance — could finish in 3 chaos or 50. Use only if you don't have Essences available or the target mods are wide enough that 'any 2 of N' is fine.",
+  "estimated_cost_chaos_range": [10, 40],
+  "estimated_success_pct": 35,
+  "notes_for_user": "Maximum variance path. Chaos in PoE2 is a one-at-a-time swap, so you can chip away at specific bad mods rather than rerolling the whole item every time. Advanced: 'Omen of Whittling' targets the lowest-tier mod for removal, and 'Omen of Sinistral/Dextral Erasure' restricts removal to prefixes or suffixes only — both make Chaos targeted rather than random.",
   "skill_floor": "beginner"
 }

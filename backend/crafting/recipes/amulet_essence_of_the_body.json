@@ -1,10 +1,10 @@
 {
   "id": "amulet_essence_of_the_body",
-  "name": "Essence of the Body → Exalt fill",
-  "description": "Cheap baseline rare amulet with a guaranteed Life prefix, then fill the remaining slots with Exalted Orbs.",
+  "name": "Essence of the Body amulet (Normal start)",
+  "description": "Cheap baseline rare amulet with a guaranteed Life mod from an essence. Transmute the base to magic, essence it to rare with Life locked in, then exalt to fill any open slots.",
   "applies_to": {
     "item_classes": ["Amulet"],
-    "min_ilvl": 40,
+    "min_ilvl": 1,
     "starting_rarity": ["normal"]
   },
   "guaranteed_mod_families": ["IncreasedLife"],
@@ -26,26 +26,26 @@
   ],
   "steps": [
     {
-      "verb": "Use a Lesser Essence of the Body on a normal amulet",
+      "verb": "Orb of Transmutation",
+      "currency": "Orb of Transmutation",
+      "qty": 1,
+      "outcome": "Upgrades the normal amulet to magic with one random modifier."
+    },
+    {
+      "verb": "Lesser Essence of the Body (or higher tier)",
       "currency": "Lesser Essence of the Body",
       "qty": 1,
-      "outcome": "Upgrades the amulet to magic with a guaranteed +Life prefix and one other random mod."
+      "outcome": "Upgrades the magic amulet to rare with a guaranteed +maximum Life modifier. Use Greater or Perfect tier if your item is ilvl 35+/50+ to roll higher-tier mods."
     },
     {
-      "verb": "Regal Orb",
-      "currency": "Regal Orb",
-      "qty": 1,
-      "outcome": "Upgrades to rare and adds one more random mod (now 3 total)."
-    },
-    {
-      "verb": "Exalt to fill to 6 mods",
+      "verb": "Exalt to fill",
       "currency": "Exalted Orb",
       "qty": 3,
-      "outcome": "Each Exalt adds one random mod. Stop when you hit a desirable combo or it caps at 6."
+      "outcome": "Each Exalt adds one random modifier (cap of 6 total). Stop when the result is usable — average ~3 exalts before a workable combo of resistances/attributes lands."
     }
   ],
   "estimated_cost_chaos_range": [25, 65],
   "estimated_success_pct": 55,
-  "notes_for_user": "Best entry-level amulet path. The guaranteed Life is the safety net; the Exalt fills are RNG so expect to brick a few before a usable result. Cheaper than chaos-spam since you guarantee one prefix.",
+  "notes_for_user": "Most reliable budget path. The guaranteed Life is your floor — even if Exalt slams land badly, the amulet is wearable. Advanced: use 'Omen of Dextral Exaltation' (held in inventory before exalting) to force suffix-only rolls and protect any open prefixes for later mod control.",
   "skill_floor": "beginner"
 }

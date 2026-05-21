@@ -1,0 +1,48 @@
+{
+  "id": "rare_exalt_to_fill",
+  "name": "Exalt to fill open slots (modify existing rare)",
+  "description": "Your rare has fewer than 6 modifiers — just exalt to add more. Cheapest possible upgrade since you keep all current mods.",
+  "applies_to": {
+    "item_classes": [],
+    "min_ilvl": 1,
+    "starting_rarity": ["rare"]
+  },
+  "guaranteed_mod_families": [],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "MaximumLifeIncreasePercent",
+    "IncreasedMana",
+    "EnergyShield",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "BaseSpirit",
+    "SpellDamage",
+    "GlobalPhysicalDamageReductionRatingPercent",
+    "GlobalEvasionRatingPercent",
+    "GlobalEnergyShieldPercent",
+    "CriticalStrikeChance",
+    "CriticalStrikeMultiplier",
+    "ManaRegeneration",
+    "LifeRegeneration",
+    "IncreasedCastSpeed"
+  ],
+  "steps": [
+    {
+      "verb": "Exalted Orb",
+      "currency": "Exalted Orb",
+      "qty": 1,
+      "outcome": "Adds one random modifier to the rare item. Each subsequent Exalt adds another, up to 6 total. Mod tier scales with item level — higher ilvl = better rolls."
+    }
+  ],
+  "estimated_cost_chaos_range": [40, 80],
+  "estimated_success_pct": 50,
+  "notes_for_user": "Best path when the rare already has 2-4 good mods and you just want more. Stop exalting once the result is workable — every Exalt is a gamble for that slot. Advanced options: 'Omen of Sinistral Exaltation' = prefix-only, 'Omen of Dextral Exaltation' = suffix-only, 'Omen of Greater Exaltation' = adds 2 mods at once (costs 2 Exalts worth of slots), 'Omen of Homogenising Exaltation' = adds a mod of the same type as an existing mod (great for stacking resistances or attributes).",
+  "skill_floor": "beginner"
+}

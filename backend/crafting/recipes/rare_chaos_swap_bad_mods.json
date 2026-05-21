@@ -1,0 +1,45 @@
+{
+  "id": "rare_chaos_swap_bad_mods",
+  "name": "Chaos-swap bad mods (modify existing rare)",
+  "description": "Your rare has the wrong mods. Chaos Orbs in PoE2 remove one random mod and add a different one — chip away at the bad mods until you land on usable rolls.",
+  "applies_to": {
+    "item_classes": [],
+    "min_ilvl": 1,
+    "starting_rarity": ["rare"]
+  },
+  "guaranteed_mod_families": [],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "MaximumLifeIncreasePercent",
+    "IncreasedMana",
+    "EnergyShield",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "BaseSpirit",
+    "SpellDamage",
+    "CriticalStrikeChance",
+    "CriticalStrikeMultiplier",
+    "ManaRegeneration",
+    "LifeRegeneration",
+    "IncreasedCastSpeed"
+  ],
+  "steps": [
+    {
+      "verb": "Chaos Orb",
+      "currency": "Chaos Orb",
+      "qty": 6,
+      "outcome": "Each Chaos Orb removes one random modifier and adds a new random one. Use repeatedly to phase out clearly bad mods. Bear in mind it can remove a good mod too — Chaos is not targeted by default."
+    }
+  ],
+  "estimated_cost_chaos_range": [6, 30],
+  "estimated_success_pct": 30,
+  "notes_for_user": "Use when the item has 2-3 mods you like and 2-3 you don't. The variance is real — sometimes Chaos removes your good mod. Set a budget. Advanced (highly recommended for this path): 'Omen of Whittling' targets the lowest-tier mod for removal, making Chaos almost deterministic — by far the most efficient way to scrub bad rolls. 'Omen of Sinistral Erasure' / 'Omen of Dextral Erasure' restrict removal to prefix-only or suffix-only.",
+  "skill_floor": "beginner"
+}

@@ -1,10 +1,10 @@
 {
-  "id": "body_armour_essence_of_battle",
-  "name": "Essence of the Body → Exalt fill (Body Armour)",
-  "description": "Guarantee a Life prefix on a body armour, then exalt for resistances and defensive stats.",
+  "id": "body_armour_essence_of_the_body",
+  "name": "Essence of the Body body armour (Normal start)",
+  "description": "Guarantee a Life mod on a body armour via an essence, then exalt for resistances and defensive scaling.",
   "applies_to": {
     "item_classes": ["Body Armours"],
-    "min_ilvl": 60,
+    "min_ilvl": 1,
     "starting_rarity": ["normal"]
   },
   "guaranteed_mod_families": ["IncreasedLife"],
@@ -28,26 +28,26 @@
   ],
   "steps": [
     {
-      "verb": "Use Lesser Essence of the Body on a normal body armour (ilvl 60+)",
+      "verb": "Orb of Transmutation",
+      "currency": "Orb of Transmutation",
+      "qty": 1,
+      "outcome": "Normal → Magic with one random modifier."
+    },
+    {
+      "verb": "Lesser Essence of the Body (or higher tier)",
       "currency": "Lesser Essence of the Body",
       "qty": 1,
-      "outcome": "Upgrades to magic with a guaranteed +Life prefix and one random other mod."
+      "outcome": "Magic → Rare with a guaranteed +maximum Life modifier. Step up to Greater or Perfect tier if the base is ilvl 35+/50+ to roll higher-tier mods."
     },
     {
-      "verb": "Regal Orb",
-      "currency": "Regal Orb",
-      "qty": 1,
-      "outcome": "Upgrades to rare; adds a third random mod."
-    },
-    {
-      "verb": "Exalt for resistances / defence",
+      "verb": "Exalt for resistances + defence",
       "currency": "Exalted Orb",
       "qty": 3,
-      "outcome": "Adds random mods one at a time. Aim for at least 2 resistance rolls before stopping. If you hit a useless prefix early, consider annulling and trying again."
+      "outcome": "Each Exalt adds one random mod (up to 6 total). Aim for at least 2 resistance rolls before stopping. Quality of mods scales with item level — high ilvl bases roll bigger numbers."
     }
   ],
   "estimated_cost_chaos_range": [50, 110],
   "estimated_success_pct": 60,
-  "notes_for_user": "Solid baseline body armour. The Life prefix is your floor — even if Exalt fills are bad, the result is wearable. For a tankier build, use a strength-base armour (e.g. Plate Vest) so the Life prefix tiers higher.",
+  "notes_for_user": "Solid baseline body armour. The Life mod is your floor — even if Exalt fills are middling, the result is wearable. For a tankier build, use a strength-base armour (e.g. Plate Vest) so the Life prefix tiers higher. Advanced: 'Omen of Sinistral Exaltation' forces prefix-only adds, useful if you want to lock in defensive prefixes.",
   "skill_floor": "beginner"
 }

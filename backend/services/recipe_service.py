@@ -82,6 +82,7 @@ class MatchResult:
 # ── Loading ────────────────────────────────────────────────────────────────
 
 _recipes_cache: list[Recipe] | None = None
+_recipes_cache_mtime: float = 0.0     # max mtime of any recipe file when cache was built
 
 
 def _step_from_dict(d: dict) -> RecipeStep:
@@ -113,16 +114,32 @@ def _recipe_from_dict(d: dict, source: str) -> Recipe:
     )
 
 
+def _scan_max_mtime() -> float:
+    """Return the newest mtime across all recipe JSON files. 0 if no files."""
+    if not os.path.isdir(RECIPES_DIR):
+        return 0.0
+    paths = glob.glob(os.path.join(RECIPES_DIR, "*.json"))
+    if not paths:
+        return 0.0
+    return max(os.path.getmtime(p) for p in paths)
+
+
 def load_all_recipes() -> list[Recipe]:
-    """Read every JSON file in recipes/ once, cache for the lifetime of the
-    process. Reload by clearing `_recipes_cache` (e.g. in dev tooling)."""
-    global _recipes_cache
-    if _recipes_cache is not None:
+    """Read every JSON file in recipes/, cache for the lifetime of the
+    process. **Auto-invalidates** when any recipe file's mtime moves forward,
+    so editing a recipe while uvicorn is running takes effect on the next
+    API call without restarting the server.
+    """
+    global _recipes_cache, _recipes_cache_mtime
+
+    current_mtime = _scan_max_mtime()
+    if _recipes_cache is not None and current_mtime == _recipes_cache_mtime:
         return _recipes_cache
 
     recipes: list[Recipe] = []
     if not os.path.isdir(RECIPES_DIR):
         _recipes_cache = []
+        _recipes_cache_mtime = 0.0
         return _recipes_cache
 
     for path in sorted(glob.glob(os.path.join(RECIPES_DIR, "*.json"))):
@@ -140,6 +157,7 @@ def load_all_recipes() -> list[Recipe]:
             print(f"[recipe_service] {path} missing required field {e}")
 
     _recipes_cache = recipes
+    _recipes_cache_mtime = current_mtime
     return _recipes_cache
 
 
