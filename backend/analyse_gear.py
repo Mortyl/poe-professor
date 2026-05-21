@@ -397,14 +397,13 @@ def analyse(skill: str, ascendancy: str, experience_level: str,
     Main analysis — returns the full gear report dict, split by life vs ES.
     Pass item= to analyse builds scraped by unique item (scrape_poeninja --item).
     """
+    from util import slug_for_skill
     if item:
-        item_slug = item.lower().replace(" ", "_").replace("'", "").replace(",", "")
-        slug      = f"{item_slug}_"
+        slug = f"{slug_for_skill(item)}_"
     elif variant_skill:
-        variant_slug_part = variant_skill.lower().replace(' ', '_')
-        slug = f"{skill.lower().replace(' ', '_')}_{variant_slug_part}_{ascendancy.lower()}_"
+        slug = f"{slug_for_skill(skill)}_{slug_for_skill(variant_skill)}_{ascendancy.lower()}_"
     else:
-        slug = f"{skill.lower().replace(' ', '_')}_{ascendancy.lower()}_"
+        slug = f"{slug_for_skill(skill)}_{ascendancy.lower()}_"
     snapshots = _snapshots_for(experience_level)
 
     # Load all matching JSONL entries
@@ -531,17 +530,14 @@ def analyse(skill: str, ascendancy: str, experience_level: str,
     os.makedirs(REPORT_DIR, exist_ok=True)
     # Filename includes the ascendancy (and variant) so different ascendancies playing
     # the same skill don't overwrite each other's report.
+    from util import slug_for_skill
     asc_slug = ascendancy.lower()
     if item:
-        item_slug = item.lower().replace(" ", "_").replace("'", "").replace(",", "")
-        out_path = os.path.join(REPORT_DIR, f"{item_slug}_{experience_level}_gear.json")
+        out_path = os.path.join(REPORT_DIR, f"{slug_for_skill(item)}_{experience_level}_gear.json")
     elif variant_skill:
-        skill_slug        = skill.lower().replace(" ", "_")
-        variant_slug_part = variant_skill.lower().replace(" ", "_")
-        out_path = os.path.join(REPORT_DIR, f"{skill_slug}_{variant_slug_part}_{asc_slug}_{experience_level}_gear.json")
+        out_path = os.path.join(REPORT_DIR, f"{slug_for_skill(skill)}_{slug_for_skill(variant_skill)}_{asc_slug}_{experience_level}_gear.json")
     else:
-        skill_slug = skill.lower().replace(" ", "_")
-        out_path = os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_{experience_level}_gear.json")
+        out_path = os.path.join(REPORT_DIR, f"{slug_for_skill(skill)}_{asc_slug}_{experience_level}_gear.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
     print(f"Gear report: {out_path}")
@@ -550,11 +546,11 @@ def analyse(skill: str, ascendancy: str, experience_level: str,
 
 def discover_slots(skill: str, ascendancy: str, experience_level: str, variant_skill: str = '') -> None:
     """Print every unique slot name found in the JSONL data, searching all XML paths."""
+    from util import slug_for_skill
     if variant_skill:
-        variant_slug_part = variant_skill.lower().replace(' ', '_')
-        slug = f"{skill.lower().replace(' ', '_')}_{variant_slug_part}_{ascendancy.lower()}_"
+        slug = f"{slug_for_skill(skill)}_{slug_for_skill(variant_skill)}_{ascendancy.lower()}_"
     else:
-        slug = f"{skill.lower().replace(' ', '_')}_{ascendancy.lower()}_"
+        slug = f"{slug_for_skill(skill)}_{ascendancy.lower()}_"
     snapshots = _snapshots_for(experience_level)
 
     all_slots: Counter = Counter()

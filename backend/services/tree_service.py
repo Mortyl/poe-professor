@@ -90,8 +90,9 @@ def _load_passive_report(ascendancy: str, skill: str = "") -> dict | None:
          across ascendancies; here for back-compat until all combos re-analysed)
       3. {ascendancy}_{exp}_passives.json         — ancient ascendancy-only fallback
     """
+    from util import slug_for_skill
     asc_slug = ascendancy.lower()
-    skill_slug = skill.lower().replace(" ", "_") if skill else ""
+    skill_slug = slug_for_skill(skill) if skill else ""
     for exp in PASSIVE_EXP_PRECEDENCE:
         candidates = []
         if skill_slug:

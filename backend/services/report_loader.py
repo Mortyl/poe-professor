@@ -22,7 +22,8 @@ def load_report(skill: str, ascendancy: str, report_type: str) -> dict | None:
       2. {skill}_{exp}_{type}.json              — legacy skill-only
       3. {ascendancy}_{exp}_{type}.json         — ancient ascendancy-only fallback
     """
-    skill_slug = skill.lower().replace(" ", "_")
+    from util import slug_for_skill
+    skill_slug = slug_for_skill(skill)
     asc_slug = ascendancy.lower()
 
     for exp in REPORT_EXP_PRECEDENCE:

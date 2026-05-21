@@ -1071,13 +1071,16 @@ PARTIAL_LEAGUE_STARTER_SNAPSHOTS: dict[str, set[str]] = {
 
 
 def _slug_for(skill: str, ascendancy: str, variant_companion: str = '', league: str = 'sc') -> str:
-    """Reproduce the slug that scrape_poeninja.py uses for its jsonl filename."""
-    skill_slug = skill.lower().replace(' ', '_')
-    asc_slug   = ascendancy.lower()
+    """Reproduce the slug that scrape_poeninja.py uses for its jsonl filename.
+
+    Routes through util.slug_for_skill so Spectre:/Companion: prefixed skills
+    don't break the Windows filesystem via the `:` character.
+    """
+    from util import slug_for_skill
+    asc_slug = ascendancy.lower()
     if variant_companion:
-        var_slug = variant_companion.lower().replace(' ', '_')
-        return f"{skill_slug}_{var_slug}_{asc_slug}_{league}"
-    return f"{skill_slug}_{asc_slug}_{league}"
+        return f"{slug_for_skill(skill)}_{slug_for_skill(variant_companion)}_{asc_slug}_{league}"
+    return f"{slug_for_skill(skill)}_{asc_slug}_{league}"
 
 
 def audit_pipeline(conn: sqlite3.Connection, fix: bool = False, league: str = 'sc'):

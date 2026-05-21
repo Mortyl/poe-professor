@@ -107,7 +107,8 @@ def get_weapon_knowledge(weapon_type: str) -> str | None:
 def get_skill_knowledge(skill: str) -> str | None:
     if not skill:
         return None
-    slug = skill.lower().replace(" ", "_")
+    from util import slug_for_skill
+    slug = slug_for_skill(skill)
     path = KNOWLEDGE_BASE_PATH / "skills" / f"{slug}.md"
     return _load_file(path)
 

@@ -419,7 +419,8 @@ def main():
     # ── Output files ─────────────────────────────────────────────────────────
     # Filename includes the ascendancy so two ascendancies playing the same skill
     # (e.g. Lightning Arrow on Deadeye and Amazon) don't overwrite each other's report.
-    skill_slug = args.skill.lower().replace(" ", "_")
+    from util import slug_for_skill
+    skill_slug = slug_for_skill(args.skill)
     asc_slug   = args.ascendancy.lower()
     base_slug  = f"{skill_slug}_{asc_slug}_{exp}_passives"
 

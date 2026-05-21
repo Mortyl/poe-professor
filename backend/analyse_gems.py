@@ -100,14 +100,13 @@ def extract_skill_groups(xml_bytes: bytes) -> list[dict] | None:
 
 def load_entries(experience_level: str, skill: str, ascendancy: str,
                  variant_skill: str = '', item: str = '') -> list[dict]:
+    from util import slug_for_skill
     if item:
-        item_slug = item.lower().replace(" ", "_").replace("'", "").replace(",", "")
-        slug = f"{item_slug}_"
+        slug = f"{slug_for_skill(item)}_"
     elif variant_skill:
-        variant_slug_part = variant_skill.lower().replace(' ', '_')
-        slug = f"{skill.lower().replace(' ', '_')}_{variant_slug_part}_{ascendancy.lower()}_"
+        slug = f"{slug_for_skill(skill)}_{slug_for_skill(variant_skill)}_{ascendancy.lower()}_"
     else:
-        slug = f"{skill.lower().replace(' ', '_')}_{ascendancy.lower()}_"
+        slug = f"{slug_for_skill(skill)}_{ascendancy.lower()}_"
     entries = []
     for fname in sorted(os.listdir(POB_DIR)):
         if not fname.endswith(".jsonl"):
@@ -224,17 +223,14 @@ def main():
     os.makedirs(REPORT_DIR, exist_ok=True)
     # Filename includes the ascendancy (and variant) so different ascendancies playing
     # the same skill don't overwrite each other's report.
+    from util import slug_for_skill
     asc_slug = args.ascendancy.lower()
     if args.item:
-        item_slug = args.item.lower().replace(" ", "_").replace("'", "").replace(",", "")
-        gems_path = os.path.join(REPORT_DIR, f"{item_slug}_{exp}_gems.json")
+        gems_path = os.path.join(REPORT_DIR, f"{slug_for_skill(args.item)}_{exp}_gems.json")
     elif args.variant_skill:
-        skill_slug        = args.skill.lower().replace(" ", "_")
-        variant_slug_part = args.variant_skill.lower().replace(" ", "_")
-        gems_path = os.path.join(REPORT_DIR, f"{skill_slug}_{variant_slug_part}_{asc_slug}_{exp}_gems.json")
+        gems_path = os.path.join(REPORT_DIR, f"{slug_for_skill(args.skill)}_{slug_for_skill(args.variant_skill)}_{asc_slug}_{exp}_gems.json")
     else:
-        skill_slug = args.skill.lower().replace(" ", "_")
-        gems_path = os.path.join(REPORT_DIR, f"{skill_slug}_{asc_slug}_{exp}_gems.json")
+        gems_path = os.path.join(REPORT_DIR, f"{slug_for_skill(args.skill)}_{asc_slug}_{exp}_gems.json")
 
     gems_data = {
         "ascendancy":       "Any" if args.item else args.ascendancy,

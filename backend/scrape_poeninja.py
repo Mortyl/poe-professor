@@ -339,14 +339,13 @@ def main():
     # One file per skill+ascendancy+league (+ variant if set) — no _early suffix.
     # Snapshot tags on each JSONL line handle league_starter vs endgame filtering.
     # Item mode uses item name as the slug instead of skill+ascendancy.
+    from util import slug_for_skill
     if args.item:
-        item_slug  = args.item.lower().replace(" ", "_").replace("'", "").replace(",", "")
-        slug = f"{item_slug}_{args.league}"
+        slug = f"{slug_for_skill(args.item)}_{args.league}"
     elif args.variant_skill:
-        variant_slug = args.variant_skill.lower().replace(' ', '_')
-        slug = f"{args.skill.lower().replace(' ', '_')}_{variant_slug}_{args.ascendancy.lower()}_{args.league}"
+        slug = f"{slug_for_skill(args.skill)}_{slug_for_skill(args.variant_skill)}_{args.ascendancy.lower()}_{args.league}"
     else:
-        slug = f"{args.skill.lower().replace(' ', '_')}_{args.ascendancy.lower()}_{args.league}"
+        slug = f"{slug_for_skill(args.skill)}_{args.ascendancy.lower()}_{args.league}"
     jsonl_path = os.path.join(POB_DIR, f"{slug}.jsonl")
 
     # Collect all codes, deduplicating on exact code string.

@@ -55,7 +55,8 @@ class PobProvenance:
 # ── Slug + decode helpers ──────────────────────────────────────────────────
 
 def _jsonl_path(skill: str, ascendancy: str, league: str) -> str:
-    slug = f"{skill.lower().replace(' ', '_')}_{ascendancy.lower()}_{league}"
+    from util import slug_for_skill
+    slug = f"{slug_for_skill(skill)}_{ascendancy.lower()}_{league}"
     return os.path.join(POB_DIR, f"{slug}.jsonl")
 
 
