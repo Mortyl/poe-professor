@@ -6,50 +6,7 @@ import GemLinksPanel from "./GemLinksPanel";
 import { skillIconPath, ascendancyIconPath, skillInitial } from "@/lib/icons";
 import styles from "./editorial.module.css";
 
-// ── Shared types — mirror the BuildGuide shape from page.tsx ────────────────
-interface GemEntry { name: string; pct: number; }
-interface SkillGem { name: string; pct: number; supports: GemEntry[]; }
-interface GemLinkData { main_skill: string; skill_gems: SkillGem[]; builds_analysed: number; }
-interface UniqueItem { name: string; base: string; slot: string; pct: number; }
-interface GearSlot {
-  slot: string;
-  top_unique: UniqueItem | null;
-  top_rare_base: string;
-  top_rare_base_pct: number;
-  top_mods: string[];
-}
-interface GearData { builds_analysed: number; slots: GearSlot[]; }
-
-interface BuildGuide {
-  skill: string;
-  ascendancy: string;
-  overview: string;
-  passive_tree_notes: string;
-  key_skills: string[];
-  gem_links: string[];
-  gear_priorities: string[];
-  playstyle_tips: string;
-  disclaimer: string;
-  recommended_nodes: number[];
-  optional_nodes: number[];
-  asc_nodes: number[];
-  gem_link_data: GemLinkData | null;
-  useful_uniques: UniqueItem[];
-  useful_uniques_es: UniqueItem[];
-  gear_data_life: GearData | null;
-  gear_data_es: GearData | null;
-  pob_export: string | null;
-  pob_provenance: { snapshot: string; level: number; node_overlap: number; support_overlap: number; supports_rewritten: boolean } | null;
-  data_pending: boolean;
-}
-
-interface SelectedMeta {
-  skill: string;
-  ascendancy: string;
-  className: string;
-  weapon: string;
-  leagueType: "sc" | "ssf" | "hc" | "hcssf";
-}
+import type { BuildGuide, SelectedMeta } from "@/lib/types/builds";
 
 interface Props {
   guide: BuildGuide;

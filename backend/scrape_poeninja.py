@@ -14,8 +14,9 @@ Usage (early-league builds — days 1/3 + weeks 1-4):
 Usage (specific league):
   python scrape_poeninja.py --skill "Lightning Arrow" --ascendancy Deadeye --league hc --snapshots week-1,week-2
 
-Then run the analyser:
-  python analyse_builds.py --filter-class Ranger --filter-asc Deadeye
+Then run the analysers:
+  python analyse_gear.py --skill "Lightning Arrow" --ascendancy Deadeye
+  python analyse_gems.py --skill "Lightning Arrow" --ascendancy Deadeye
 """
 
 import sys

@@ -9,65 +9,7 @@ import BrowseDiscovery from "./components/BrowseDiscovery";
 import BuildGuideTome from "./components/BuildGuideTome";
 import styles from "./page.module.css";
 
-interface GemEntry {
-  name: string;
-  pct: number;
-}
-
-interface SkillGem {
-  name: string;
-  pct: number;
-  supports: GemEntry[];
-}
-
-interface GemLinkData {
-  main_skill: string;
-  skill_gems: SkillGem[];
-  builds_analysed: number;
-}
-
-interface UniqueItem {
-  name: string;
-  base: string;
-  slot: string;
-  pct: number;
-}
-
-interface GearSlot {
-  slot: string;
-  top_unique: UniqueItem | null;
-  top_rare_base: string;
-  top_rare_base_pct: number;
-  top_mods: string[];
-}
-
-interface GearData {
-  builds_analysed: number;
-  slots: GearSlot[];
-}
-
-interface BuildGuide {
-  skill: string;
-  ascendancy: string;
-  overview: string;
-  passive_tree_notes: string;
-  key_skills: string[];
-  gem_links: string[];
-  gear_priorities: string[];
-  playstyle_tips: string;
-  disclaimer: string;
-  recommended_nodes: number[];
-  optional_nodes: number[];
-  asc_nodes: number[];
-  gem_link_data: GemLinkData | null;
-  useful_uniques: UniqueItem[];
-  useful_uniques_es: UniqueItem[];
-  gear_data_life: GearData | null;
-  gear_data_es: GearData | null;
-  pob_export: string | null;
-  pob_provenance: { snapshot: string; level: number; node_overlap: number; support_overlap: number; supports_rewritten: boolean } | null;
-  data_pending: boolean;
-}
+import type { BuildGuide } from "@/lib/types/builds";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -209,7 +151,7 @@ export default function BuildsPage() {
             <p className={styles.subtitle} style={{ textAlign: "center", marginTop: "12px" }}>
               The randomiser is coming soon, exile.
             </p>
-            <button className={styles.resetBtn} style={{ marginTop: "32px" }} onClick={() => setMode("select")}>
+            <button className={styles.resetBtn} style={{ marginTop: "32px" }} onClick={() => setMode("browse")}>
               ← Back
             </button>
           </div>
@@ -253,7 +195,7 @@ export default function BuildsPage() {
           {error && <div className={styles.error}>{error}</div>}
 
           {!loading && (
-            <BuildWizard onComplete={handleWizardComplete} onBack={() => setMode("select")} />
+            <BuildWizard onComplete={handleWizardComplete} onBack={() => setMode("browse")} />
           )}
 
           {loading && (

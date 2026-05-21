@@ -5,8 +5,8 @@ the user's class, ascendancy, allocated passive nodes, skill groups (active +
 supports), and equipped items.
 
 This is the single front-door used by the analyser. It wraps + reuses logic
-from `analyse_gems.py`, `analyse_gear.py`, and `analyse_builds.py` so we
-don't reimplement decoding in three places.
+from `analyse_gems.py` and `analyse_gear.py` so we don't reimplement decoding
+in three places.
 """
 
 import base64
