@@ -1,0 +1,10 @@
+{
+  "steam": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Path of Exile 2",
+  "files": [],
+  "tables": [
+    { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemVisualIdentity"] },
+    { "name": "ItemVisualIdentity", "columns": ["Id", "DDSFile"] },
+    { "name": "UniqueStashLayout", "columns": ["WordsKey", "ItemVisualIdentityKey"] },
+    { "name": "Words", "columns": ["Text"] }
+  ]
+}

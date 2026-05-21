@@ -56,3 +56,16 @@ mockups/
 frontend/users.db
 frontend/users.db-shm
 frontend/users.db-wal
+
+# Third-party PoE2 bundle extraction binaries (download separately if needed)
+backend/scripts/ggpk_tools/
+
+# Icon extraction — keep the scripts (README, config.json, *.mjs) but ignore
+# the large extracted/cached data and output PNGs (regenerable from a Steam
+# install per backend/scripts/icon_extract/README.md).
+backend/scripts/icon_extract/files/
+backend/scripts/icon_extract/out/
+backend/scripts/icon_extract/tables/
+
+# Extracted item PNGs — regen via backend/scripts/icon_extract/extract_all.mjs
+frontend/public/icons/items/

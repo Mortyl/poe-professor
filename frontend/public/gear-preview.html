@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gear — Font Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@400;600&family=Inter:wght@400;500&family=Barlow:wght@400;500&family=DM+Sans:wght@400;500&family=Outfit:wght@400;500&family=Nunito:wght@400;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:     #05080f;
+    --surface:     #0d1220;
+    --line:        #1e2840;
+    --text:        #d8d0c0;
+    --text-dim:    #8890a0;
+    --text-faint:  #4a5060;
+    --amber:       #c8a84a;
+    --amber-bright:#e8c84a;
+    --amber-dim:   #806830;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'Crimson Text', Georgia, serif;
+    padding: 48px 40px 96px;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--amber);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-align: center;
+    letter-spacing: 0.1em;
+    margin-bottom: 56px;
+  }
+
+  .font-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .font-block { display: flex; flex-direction: column; gap: 0; }
+  .font-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .font-name-tag {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    float: right;
+  }
+
+  .card {
+    display: flex;
+    gap: 16px;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    margin-bottom: 2px;
+    align-items: flex-start;
+  }
+  .icon {
+    width: 72px; height: 72px; flex-shrink: 0;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    color: var(--text-faint);
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-head {
+    font-family: 'Crimson Text', serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .slot-tag {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-right: 10px;
+    font-weight: 400;
+  }
+
+  /* font variants applied per block */
+  .f-inter    ol { font-family: 'Inter', sans-serif; font-size: 12px; }
+  .f-barlow   ol { font-family: 'Barlow', sans-serif; font-size: 12px; }
+  .f-dmsans   ol { font-family: 'DM Sans', sans-serif; font-size: 12px; }
+  .f-outfit   ol { font-family: 'Outfit', sans-serif; font-size: 12px; }
+  .f-nunito   ol { font-family: 'Nunito', sans-serif; font-size: 12px; }
+  .f-source   ol { font-family: 'Source Sans 3', sans-serif; font-size: 12px; }
+
+  ol {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+  }
+  .pct {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Gear Section — Font Preview</h1>
+<p class="subtitle">Choose your preferred font for the stats list · Slot headers & item names stay unchanged</p>
+
+<div class="font-grid">
+
+  <!-- Option 1: Inter -->
+  <div class="font-block f-inter">
+    <div class="font-label">Option 1 <span class="font-name-tag">Inter</span></div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Body Armour</span>
+          <span style="color:var(--amber-bright)">Slipstrike Vest</span>
+          <span class="pct">41%</span>
+        </div>
+        <ol>
+          <li>(15–194)% increased Evasion Rating</li>
+          <li>+(63–330) to Evasion Rating</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–263) to maximum Life</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Gloves</span>
+          <span style="color:var(--text)">Stalking Bracers</span>
+          <span class="pct">11%</span>
+        </div>
+        <ol>
+          <li>Adds (1–4) to (60–71) Lightning damage to Attacks</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–198) to maximum Life</li>
+          <li>+(4–27)% to Chaos Resistance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 2: Barlow -->
+  <div class="font-block f-barlow">
+    <div class="font-label">Option 2 <span class="font-name-tag">Barlow</span></div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Body Armour</span>
+          <span style="color:var(--amber-bright)">Slipstrike Vest</span>
+          <span class="pct">41%</span>
+        </div>
+        <ol>
+          <li>(15–194)% increased Evasion Rating</li>
+          <li>+(63–330) to Evasion Rating</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–263) to maximum Life</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Gloves</span>
+          <span style="color:var(--text)">Stalking Bracers</span>
+          <span class="pct">11%</span>
+        </div>
+        <ol>
+          <li>Adds (1–4) to (60–71) Lightning damage to Attacks</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–198) to maximum Life</li>
+          <li>+(4–27)% to Chaos Resistance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 3: DM Sans -->
+  <div class="font-block f-dmsans">
+    <div class="font-label">Option 3 <span class="font-name-tag">DM Sans</span></div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Body Armour</span>
+          <span style="color:var(--amber-bright)">Slipstrike Vest</span>
+          <span class="pct">41%</span>
+        </div>
+        <ol>
+          <li>(15–194)% increased Evasion Rating</li>
+          <li>+(63–330) to Evasion Rating</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–263) to maximum Life</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Gloves</span>
+          <span style="color:var(--text)">Stalking Bracers</span>
+          <span class="pct">11%</span>
+        </div>
+        <ol>
+          <li>Adds (1–4) to (60–71) Lightning damage to Attacks</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–198) to maximum Life</li>
+          <li>+(4–27)% to Chaos Resistance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 4: Outfit -->
+  <div class="font-block f-outfit">
+    <div class="font-label">Option 4 <span class="font-name-tag">Outfit</span></div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Body Armour</span>
+          <span style="color:var(--amber-bright)">Slipstrike Vest</span>
+          <span class="pct">41%</span>
+        </div>
+        <ol>
+          <li>(15–194)% increased Evasion Rating</li>
+          <li>+(63–330) to Evasion Rating</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–263) to maximum Life</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Gloves</span>
+          <span style="color:var(--text)">Stalking Bracers</span>
+          <span class="pct">11%</span>
+        </div>
+        <ol>
+          <li>Adds (1–4) to (60–71) Lightning damage to Attacks</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–198) to maximum Life</li>
+          <li>+(4–27)% to Chaos Resistance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 5: Nunito -->
+  <div class="font-block f-nunito">
+    <div class="font-label">Option 5 <span class="font-name-tag">Nunito</span></div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Body Armour</span>
+          <span style="color:var(--amber-bright)">Slipstrike Vest</span>
+          <span class="pct">41%</span>
+        </div>
+        <ol>
+          <li>(15–194)% increased Evasion Rating</li>
+          <li>+(63–330) to Evasion Rating</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–263) to maximum Life</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Gloves</span>
+          <span style="color:var(--text)">Stalking Bracers</span>
+          <span class="pct">11%</span>
+        </div>
+        <ol>
+          <li>Adds (1–4) to (60–71) Lightning damage to Attacks</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–198) to maximum Life</li>
+          <li>+(4–27)% to Chaos Resistance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 6: Source Sans 3 -->
+  <div class="font-block f-source">
+    <div class="font-label">Option 6 <span class="font-name-tag">Source Sans 3</span></div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Body Armour</span>
+          <span style="color:var(--amber-bright)">Slipstrike Vest</span>
+          <span class="pct">41%</span>
+        </div>
+        <ol>
+          <li>(15–194)% increased Evasion Rating</li>
+          <li>+(63–330) to Evasion Rating</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–263) to maximum Life</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">icon</div>
+      <div class="card-body">
+        <div class="card-head">
+          <span class="slot-tag">Gloves</span>
+          <span style="color:var(--text)">Stalking Bracers</span>
+          <span class="pct">11%</span>
+        </div>
+        <ol>
+          <li>Adds (1–4) to (60–71) Lightning damage to Attacks</li>
+          <li>+% to Fire/Cold/Lightning Resistances</li>
+          <li>+(30–198) to maximum Life</li>
+          <li>+(4–27)% to Chaos Resistance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
