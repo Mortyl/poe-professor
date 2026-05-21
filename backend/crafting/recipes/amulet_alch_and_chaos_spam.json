@@ -1,0 +1,48 @@
+{
+  "id": "amulet_alch_and_chaos_spam",
+  "name": "Alchemy + Chaos spam",
+  "description": "Brute-force a rare amulet by alching once, then chaos-spamming until you hit usable mods. Pure RNG, no guarantees, but cheap per attempt.",
+  "applies_to": {
+    "item_classes": ["Amulet"],
+    "min_ilvl": 60,
+    "starting_rarity": ["normal"]
+  },
+  "guaranteed_mod_families": [],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "BaseSpirit",
+    "SpellDamage",
+    "CriticalStrikeChance",
+    "CriticalStrikeMultiplier",
+    "ManaRegeneration",
+    "LifeRegeneration",
+    "IncreasedCastSpeed"
+  ],
+  "steps": [
+    {
+      "verb": "Orb of Alchemy on a normal amulet",
+      "currency": "Orb of Alchemy",
+      "qty": 1,
+      "outcome": "Rarity to rare with 4 random mods."
+    },
+    {
+      "verb": "Chaos Orb until usable",
+      "currency": "Chaos Orb",
+      "qty": 20,
+      "outcome": "Each Chaos rerolls ALL mods. Average expect ~20 attempts before hitting a 2-good-mod combo. Set a hard budget — don't sink past it."
+    }
+  ],
+  "estimated_cost_chaos_range": [20, 60],
+  "estimated_success_pct": 30,
+  "notes_for_user": "Maximum variance — could finish in 3 chaos or 50. Use only if you don't have Essences available or the target mods are wide enough that 'any 2 of N' is fine.",
+  "skill_floor": "beginner"
+}

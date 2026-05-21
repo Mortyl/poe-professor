@@ -1,0 +1,51 @@
+{
+  "id": "amulet_essence_of_the_body",
+  "name": "Essence of the Body → Exalt fill",
+  "description": "Cheap baseline rare amulet with a guaranteed Life prefix, then fill the remaining slots with Exalted Orbs.",
+  "applies_to": {
+    "item_classes": ["Amulet"],
+    "min_ilvl": 40,
+    "starting_rarity": ["normal"]
+  },
+  "guaranteed_mod_families": ["IncreasedLife"],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "BaseSpirit",
+    "ManaRegeneration",
+    "CriticalStrikeChance",
+    "CriticalStrikeMultiplier"
+  ],
+  "steps": [
+    {
+      "verb": "Use a Lesser Essence of the Body on a normal amulet",
+      "currency": "Lesser Essence of the Body",
+      "qty": 1,
+      "outcome": "Upgrades the amulet to magic with a guaranteed +Life prefix and one other random mod."
+    },
+    {
+      "verb": "Regal Orb",
+      "currency": "Regal Orb",
+      "qty": 1,
+      "outcome": "Upgrades to rare and adds one more random mod (now 3 total)."
+    },
+    {
+      "verb": "Exalt to fill to 6 mods",
+      "currency": "Exalted Orb",
+      "qty": 3,
+      "outcome": "Each Exalt adds one random mod. Stop when you hit a desirable combo or it caps at 6."
+    }
+  ],
+  "estimated_cost_chaos_range": [25, 65],
+  "estimated_success_pct": 55,
+  "notes_for_user": "Best entry-level amulet path. The guaranteed Life is the safety net; the Exalt fills are RNG so expect to brick a few before a usable result. Cheaper than chaos-spam since you guarantee one prefix.",
+  "skill_floor": "beginner"
+}

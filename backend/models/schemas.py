@@ -170,3 +170,56 @@ class BuildAnalysisOut(BaseModel):
     gem: GemAnalysisOut
     passive: PassiveAnalysisOut
     gear: GearAnalysisOut
+
+
+# ── Crafting Architect ─────────────────────────────────────────────────────
+
+class CraftAnalyseRequest(BaseModel):
+    item_text: str                                # raw clipboard text from in-game Ctrl+C
+    target_mod_groups: List[str] = []             # RePoE2 group ids the user wants
+    top_n: int = 3                                # cap on returned recipes
+
+
+class ParsedItemOut(BaseModel):
+    item_class: str
+    rarity: str
+    name: str = ""
+    base_type: str = ""
+    item_level: int
+    quality: int
+    implicits: List[str] = []
+    explicit_mods: List[str] = []
+    corrupted: bool = False
+    mirrored: bool = False
+    warnings: List[str] = []
+
+
+class RecipeStepOut(BaseModel):
+    verb: str
+    currency: Optional[str] = None
+    qty: float
+    outcome: str
+
+
+class RecipeOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    guaranteed_mod_families: List[str]
+    rollable_mod_families: List[str]
+    steps: List[RecipeStepOut]
+    estimated_cost_chaos_range: List[float]       # [low, high]
+    estimated_success_pct: Optional[float] = None
+    notes_for_user: str = ""
+    skill_floor: str = "beginner"
+    # Match-time metadata
+    coverage_score: float                         # 0..1
+    guaranteed_coverage: int
+    rollable_coverage: int
+    live_cost_chaos: Optional[float] = None       # None when no live pricing
+
+
+class CraftAnalyseResponse(BaseModel):
+    item: ParsedItemOut
+    recipes: List[RecipeOut] = []
+    no_recipes_reason: Optional[str] = None       # populated when recipes is empty

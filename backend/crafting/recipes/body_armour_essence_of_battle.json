@@ -1,0 +1,53 @@
+{
+  "id": "body_armour_essence_of_battle",
+  "name": "Essence of the Body → Exalt fill (Body Armour)",
+  "description": "Guarantee a Life prefix on a body armour, then exalt for resistances and defensive stats.",
+  "applies_to": {
+    "item_classes": ["Body Armours"],
+    "min_ilvl": 60,
+    "starting_rarity": ["normal"]
+  },
+  "guaranteed_mod_families": ["IncreasedLife"],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "MaximumLifeIncreasePercent",
+    "EnergyShield",
+    "GlobalPhysicalDamageReductionRatingPercent",
+    "GlobalEvasionRatingPercent",
+    "GlobalEnergyShieldPercent",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "BaseSpirit"
+  ],
+  "steps": [
+    {
+      "verb": "Use Lesser Essence of the Body on a normal body armour (ilvl 60+)",
+      "currency": "Lesser Essence of the Body",
+      "qty": 1,
+      "outcome": "Upgrades to magic with a guaranteed +Life prefix and one random other mod."
+    },
+    {
+      "verb": "Regal Orb",
+      "currency": "Regal Orb",
+      "qty": 1,
+      "outcome": "Upgrades to rare; adds a third random mod."
+    },
+    {
+      "verb": "Exalt for resistances / defence",
+      "currency": "Exalted Orb",
+      "qty": 3,
+      "outcome": "Adds random mods one at a time. Aim for at least 2 resistance rolls before stopping. If you hit a useless prefix early, consider annulling and trying again."
+    }
+  ],
+  "estimated_cost_chaos_range": [50, 110],
+  "estimated_success_pct": 60,
+  "notes_for_user": "Solid baseline body armour. The Life prefix is your floor — even if Exalt fills are bad, the result is wearable. For a tankier build, use a strength-base armour (e.g. Plate Vest) so the Life prefix tiers higher.",
+  "skill_floor": "beginner"
+}
