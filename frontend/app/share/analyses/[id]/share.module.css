@@ -1,0 +1,86 @@
+.main {
+  min-height: calc(100vh - 64px);
+  font-family: var(--font-serif);
+  position: relative;
+}
+.main::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 100% 100% at 50% 30%, transparent 30%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 24px 96px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+/* ── Top conversion CTA — the whole point of public shares ─────────────── */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: linear-gradient(to right, rgba(212, 176, 120, 0.10), rgba(212, 176, 120, 0.02));
+  border: 1px solid var(--amber-dim);
+  border-radius: 4px;
+  padding: 18px 22px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.ctaLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ctaEyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.ctaTitle {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--text);
+}
+.ctaButton {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--amber-bright);
+  background: rgba(212, 176, 120, 0.12);
+  border: 1px solid var(--amber);
+  padding: 12px 22px;
+  text-decoration: none;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.ctaButton:hover { background: rgba(212, 176, 120, 0.22); }
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.savedHeader {
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.savedLabel {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  color: var(--amber-bright);
+  margin: 0 0 6px;
+}
+.savedDate {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+}

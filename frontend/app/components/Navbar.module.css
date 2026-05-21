@@ -28,6 +28,7 @@
 .links {
   display: flex;
   gap: 32px;
+  align-items: center;
 }
 
 .link {
@@ -37,14 +38,152 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--text-dim);
-  padding-bottom: 4px;
-  border-bottom: 1px solid transparent;
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .link:hover { color: var(--amber-bright); }
 .link.active {
-  color: var(--text);
-  border-bottom-color: var(--amber-dim);
+  color: var(--amber-bright);
+  /* True underline (not a border) — text-underline-offset controls the
+     gap from text to line directly, in a way that adapts to the font's
+     own metrics. Much more reliable than padding-bottom + border-bottom. */
+  text-decoration: underline;
+  text-decoration-color: var(--amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
+/* ── Auth section ─────────────────────────────────────────────────────── */
+.authLoading {
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
+.signInBtn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber-bright);
+  background: transparent;
+  border: 1px solid var(--amber-dim);
+  padding: 6px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background .15s, border-color .15s;
+}
+.signInBtn:hover {
+  background: rgba(212, 176, 120, 0.08);
+  border-color: var(--amber);
+}
+
+.userMenu {
+  position: relative;
+  /* Visual separation from the nav items so the user area doesn't read as
+     a fifth section header. */
+  margin-left: 8px;
+  padding-left: 20px;
+  border-left: 1px solid var(--line);
+}
+.userBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px 4px 4px;
+  border-radius: 2px;
+}
+.userBtn:hover { background: rgba(212, 176, 120, 0.06); }
+
+.userCaret {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-left: -2px;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.userBtn:hover .userCaret { color: var(--amber); }
+.userCaretOpen { transform: rotate(180deg); }
+
+.avatar {
+  border-radius: 50%;
+  border: 1px solid var(--amber-dim);
+  display: block;
+}
+.avatarFallback {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber-bright);
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+.userName {
+  /* Username is personal identity, not a section header — switch to the
+     serif body face, mixed case, normal tracking so it reads as a name
+     rather than blending in with HOME / BUILDS / ATLAS etc. */
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--amber);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userBtn:hover .userName { color: var(--amber-bright); }
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  z-index: 100;
+}
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.dropdownItem:hover {
+  color: var(--amber-bright);
+  background: rgba(212, 176, 120, 0.06);
+}
+
+.dropdownSep {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 0;
+}
+
+.dropdownItemDanger {
+  color: #c87a82;
+}
+.dropdownItemDanger:hover {
+  color: #f0c0c4;
+  background: rgba(160, 40, 48, 0.10);
 }

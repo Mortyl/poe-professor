@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import CompanionGate from "./components/CompanionGate";
 
@@ -21,12 +22,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@400;500&display=swap"
         />
       </head>
       <body>
-        {children}
-        <CompanionGate />
+        <SessionProvider>
+          {children}
+          <CompanionGate />
+        </SessionProvider>
       </body>
     </html>
   );

@@ -1,0 +1,129 @@
+.main {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  position: relative;
+  font-family: var(--font-serif);
+}
+.main::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 100% 100% at 50% 30%, transparent 30%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 48px 36px 36px;
+}
+
+.flourish {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.flourishLine {
+  height: 1px; width: 60px;
+  background: linear-gradient(to right, transparent, var(--amber-dim), transparent);
+}
+.flourishDiamond {
+  width: 8px; height: 8px;
+  background: var(--amber);
+  transform: rotate(45deg);
+  opacity: 0.7;
+}
+.flourishCenter { width: 10px; height: 10px; background: var(--amber-bright); opacity: 1; }
+
+.title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 0.36em;
+  color: var(--amber-bright);
+  margin: 0 0 16px;
+}
+.blurb {
+  color: var(--text-dim);
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.55;
+  margin: 0 auto 28px;
+  max-width: 360px;
+}
+
+.providerStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.discordBtn, .googleBtn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  padding: 14px 22px;
+  cursor: pointer;
+  transition: filter .15s, transform .15s, background .15s;
+  width: 100%;
+  max-width: 320px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+/* Discord brand mark is white-on-blurple. Inherit the button text color. */
+.discordBtn .icon { color: #ffffff; }
+.discordBtn:hover, .googleBtn:hover { filter: brightness(1.1); }
+.discordBtn:active, .googleBtn:active { transform: translateY(1px); }
+
+.discordBtn {
+  background: #5865f2; /* Discord brand */
+  border: 1px solid #4752c4;
+  color: #ffffff;
+}
+.googleBtn {
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  color: #1f1f1f;
+  letter-spacing: 0.22em;
+}
+.googleBtn:hover {
+  background: #f6f6f6;
+  filter: none;
+}
+
+.error {
+  margin: 0 0 20px;
+  padding: 10px 14px;
+  background: rgba(160, 40, 48, 0.12);
+  border: 1px solid var(--blood);
+  color: #f0c0c4;
+  font-size: 13px;
+  border-radius: 2px;
+}
+
+.fine {
+  margin: 24px 0 0;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.55;
+}
