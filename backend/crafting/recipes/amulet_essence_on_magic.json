@@ -1,0 +1,51 @@
+{
+  "id": "amulet_essence_on_magic",
+  "name": "Essence Existing Magic Amulet",
+  "description": "You already have a magic amulet — decide whether to commit currency to it. If the magic mods are useful (Life or Resistances), Essence to Rare and Exalt to fill. If they're filler (armour %, generic damage, etc.), the cheapest move is to discard and start with a fresh white base.",
+  "applies_to": {
+    "item_classes": ["Amulet"],
+    "min_ilvl": 1,
+    "starting_rarity": ["magic"]
+  },
+  "guaranteed_mod_families": ["IncreasedLife"],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "BaseSpirit",
+    "ManaRegeneration",
+    "CriticalStrikeChance",
+    "CriticalStrikeMultiplier"
+  ],
+  "steps": [
+    {
+      "verb": "Decide: is this base worth essencing?",
+      "currency": null,
+      "qty": 1,
+      "outcome": "→ IF your current magic mods include Life or any Resistance: GO. The essence will lock in those useful mods alongside the guaranteed Life — strong starting point. → IF the magic mods are filler (raw damage %, Strength/Dex/Int, generic defence %, armour %, etc.): the essence will preserve those filler mods, which means you carry dead weight to 6/6. For budget crafting that's still acceptable, but the cleaner play is to discard this base and use a fresh white amulet to run the cheap filter recipe instead."
+    },
+    {
+      "verb": "Lesser Essence of the Body",
+      "currency": "Lesser Essence of the Body",
+      "qty": 1,
+      "outcome": "Magic → Rare. Your existing 1-2 magic mods are PRESERVED and the essence adds its guaranteed +maximum Life. If you had 2 magic mods you now have a 3-mod rare; if you had 1 you now have 2-mod rare."
+    },
+    {
+      "verb": "Exalt to fill missing resistances",
+      "currency": "Exalted Orb",
+      "qty": 3,
+      "outcome": "Each Exalt adds one random modifier (cap of 6 total). Aim for at least 2 resistance rolls. If you already have a resistance from the magic step, you only need ~2 more Exalts on average to land a usable amulet."
+    }
+  ],
+  "estimated_cost_chaos_range": [20, 60],
+  "estimated_success_pct": 50,
+  "notes_for_user": "Best when your magic base already has Life or a Resistance — you essentially get 4 useful mods locked in (1-2 magic + 1 essence + 1-2 hit Exalts). If the magic mods are filler, the better budget play is the 'Cheap Life Amulet — Aug Filter + Essence' recipe on a fresh white base. Advanced: 'Omen of Dextral Exaltation' (suffix-only) on the final Exalts protects your open prefix slots for later targeted mod additions.",
+  "skill_floor": "beginner"
+}

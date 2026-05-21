@@ -1,0 +1,53 @@
+{
+  "id": "body_armour_essence_on_magic",
+  "name": "Essence Existing Magic Body Armour",
+  "description": "You already have a magic body armour — decide whether to commit currency. If the magic mods are Life or Resistance, essence to lock them in alongside Life. If they're filler, discarding and using a fresh white base is cleaner.",
+  "applies_to": {
+    "item_classes": ["Body Armours"],
+    "min_ilvl": 1,
+    "starting_rarity": ["magic"]
+  },
+  "guaranteed_mod_families": ["IncreasedLife"],
+  "rollable_mod_families": [
+    "IncreasedLife",
+    "MaximumLifeIncreasePercent",
+    "EnergyShield",
+    "GlobalPhysicalDamageReductionRatingPercent",
+    "GlobalEvasionRatingPercent",
+    "GlobalEnergyShieldPercent",
+    "Strength",
+    "Dexterity",
+    "Intelligence",
+    "AllAttributes",
+    "FireResistance",
+    "ColdResistance",
+    "LightningResistance",
+    "AllResistances",
+    "ChaosResistance",
+    "BaseSpirit"
+  ],
+  "steps": [
+    {
+      "verb": "Decide: is this base worth essencing?",
+      "currency": null,
+      "qty": 1,
+      "outcome": "→ IF your current magic mods include Life, Energy Shield, or any Resistance: GO. → IF they're filler (raw armour/evasion %, generic stats): the essence preserves them as dead weight. Discard and start with a fresh white body armour for a cleaner result, OR proceed if you're explicitly going budget."
+    },
+    {
+      "verb": "Lesser Essence of the Body",
+      "currency": "Lesser Essence of the Body",
+      "qty": 1,
+      "outcome": "Magic → Rare with the existing magic mod(s) preserved and the essence's guaranteed +maximum Life added on top."
+    },
+    {
+      "verb": "Exalt for resistances + defence",
+      "currency": "Exalted Orb",
+      "qty": 3,
+      "outcome": "Each Exalt adds one random modifier (cap of 6 total). Aim for at least 2 resistance rolls; if you already had one from the magic step you typically only need ~2 Exalts to finish."
+    }
+  ],
+  "estimated_cost_chaos_range": [40, 100],
+  "estimated_success_pct": 55,
+  "notes_for_user": "Good when your magic base already has Life or a Resistance. For STR-base armours (Plate Vest etc.) the guaranteed Life prefix tiers higher than on EV/ES bases. Advanced: 'Omen of Sinistral Exaltation' forces prefix-only Exalts, useful for locking defensive prefixes when the magic already filled one suffix slot.",
+  "skill_floor": "beginner"
+}
