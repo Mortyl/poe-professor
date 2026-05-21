@@ -151,6 +151,7 @@ export const FIRST_FRAME_SHEETS = [
   "group-background_160_164_BC7.webp",
   "group-background_208_208_BC7.webp",
   "group-background_528_528_BC7.webp",
+  "group-background_92_92_BC7.webp",
 ];
 
 export function loadTreeAssets(): Promise<void> {

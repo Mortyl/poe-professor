@@ -83,6 +83,8 @@
 .page {
   padding: 56px 48px 64px;
   min-height: 700px;
+  display: flex;
+  flex-direction: column;
 }
 .pageNumber {
   text-align: center;
@@ -437,10 +439,13 @@
 
 /* ── Detail sections below the tome ──────────────────────────────────── */
 .detailSection {
-  margin-top: 64px;
-  padding-top: 48px;
-  border-top: 1px solid var(--line);
-  scroll-margin-top: 80px;          /* anchor lands below the navbar */
+  margin-top: 24px;
+  padding-top: 24px;
+  scroll-margin-top: 80px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 .detailTitle {
   font-family: var(--font-display);
@@ -449,6 +454,7 @@
   color: var(--amber);
   letter-spacing: 0.32em;
   text-transform: uppercase;
+  text-align: center;
   margin-bottom: 24px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
@@ -458,7 +464,8 @@
   content: '';
   position: absolute;
   bottom: -1px;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 60px;
   height: 1px;
   background: var(--amber);
@@ -499,6 +506,7 @@
   margin-top: 32px;
   display: flex;
   justify-content: center;
+  gap: 12px;
 }
 .backButton {
   font-family: var(--font-display);
@@ -516,11 +524,38 @@
   border-color: var(--amber);
 }
 
+.dataPending {
+  margin: 0 auto 24px;
+  max-width: 760px;
+  padding: 14px 18px;
+  background: rgba(212, 176, 120, 0.07);
+  border-left: 3px solid var(--amber-dim);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.55;
+  border-radius: 2px;
+}
+.dataPending strong {
+  color: var(--amber-bright);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pobProvenance {
+  text-align: center;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 10px;
+  letter-spacing: 0.02em;
+}
+
 /* Detail-section gear tabs (Life / Energy Shield) */
 .gearTabs {
   margin-bottom: 16px;
   display: flex;
   gap: 4px;
+  justify-content: flex-end;
 }
 .gearTab {
   font-family: var(--font-display);
@@ -538,4 +573,43 @@
   background: var(--amber);
   color: var(--bg-deep);
   border-color: var(--amber);
+}
+
+/* ── Save guide panel ──────────────────────────────────────────────────── */
+.savePanel {
+  max-width: 480px;
+  margin: 12px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.saveInput {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 2px;
+}
+.saveInput:focus {
+  outline: none;
+  border-color: var(--amber-dim);
+}
+.saveMsg {
+  text-align: center;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.saveMsgLink {
+  color: var(--amber);
+  text-decoration: underline;
+}
+.saveError {
+  text-align: center;
+  font-style: italic;
+  font-size: 13px;
+  color: #e8c0c4;
 }

@@ -95,3 +95,78 @@ class BuildGuide(BaseModel):
     useful_uniques_es: List[UniqueItem] = []      # top unique items (ES builds)
     gear_data_life: Optional[GearData] = None     # per-slot gear — life builds
     gear_data_es: Optional[GearData] = None       # per-slot gear — ES builds
+    pob_export: Optional[str] = None              # canonical PoB2 export string (base64 zlib XML) — guide supports patched into a real player base
+    pob_provenance: Optional[dict] = None         # {snapshot, level, node_overlap, support_overlap, supports_rewritten}
+    data_pending: bool = False                    # True when no gem/gear/passive report exists yet — backend has tree only
+
+
+# ── Build Analyser ─────────────────────────────────────────────────────────
+
+class AnalyseRequest(BaseModel):
+    source: str                                   # "pob" | "poe_ninja"
+    pob_code: Optional[str] = None                # required when source == "pob"
+    account_name: Optional[str] = None            # required when source == "poe_ninja"
+    character_name: Optional[str] = None          # required when source == "poe_ninja"
+    league_type: str = "sc"                       # for poe.ninja snapshot lookup
+    main_skill: Optional[str] = None              # override auto-detected skill
+    experience_level: str = "league_starter"      # "league_starter" | "endgame"
+
+
+class GemFindingOut(BaseModel):
+    kind: str
+    support: str
+    meta_pct: float
+    severity: str
+
+
+class GemAnalysisOut(BaseModel):
+    main_skill: str
+    builds_analysed: int
+    confidence: float
+    user_supports: List[str] = []
+    findings: List[GemFindingOut] = []
+    available: bool = True
+    message: str = ""
+
+
+class PassiveFindingOut(BaseModel):
+    kind: str
+    node_id: int
+    node_name: str
+    meta_pct: float
+    severity: str
+
+
+class PassiveAnalysisOut(BaseModel):
+    builds_analysed: int
+    confidence: float
+    user_node_count: int = 0
+    findings: List[PassiveFindingOut] = []
+    available: bool = True
+    message: str = ""
+
+
+class GearFindingOut(BaseModel):
+    slot: str
+    kind: str
+    message: str
+    severity: str
+
+
+class GearAnalysisOut(BaseModel):
+    total_uncapped_res: dict = {}
+    findings: List[GearFindingOut] = []
+    available: bool = True
+    message: str = ""
+
+
+class BuildAnalysisOut(BaseModel):
+    skill: str
+    ascendancy: str
+    class_name: str
+    level: int
+    experience_level: str
+    candidate_skills: List[str] = []
+    gem: GemAnalysisOut
+    passive: PassiveAnalysisOut
+    gear: GearAnalysisOut

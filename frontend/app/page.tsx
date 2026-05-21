@@ -28,9 +28,9 @@ const TOOLS: Tool[] = [
   {
     href: "/builds",
     icon: "⚔️",
-    name: "Build Creator",
-    desc: "Generate an AI-powered build guide. Choose class, ascendancy, weapon and skill — or let fate spin the wheel for something unexpected.",
-    cta: "Create a build",
+    name: "Builds",
+    desc: "Find a build, see this league's tier list, or hand us your character for a personalised improvement report — all in one place.",
+    cta: "Open the builds hall",
   },
   {
     href: "/atlas",
@@ -45,13 +45,6 @@ const TOOLS: Tool[] = [
     name: "Crafting Architect",
     desc: "Step-by-step crafting plans for the item you desire. Bench, essence, expedition, and every method beyond — cheapest to most guaranteed.",
     cta: "Start crafting",
-  },
-  {
-    href: "/exile",
-    icon: "🧙",
-    name: "Exile Refiner",
-    desc: "Import your character and I will analyse your gear, passive tree and gems — then suggest exactly how to improve.",
-    cta: "Refine character",
   },
 ];
 

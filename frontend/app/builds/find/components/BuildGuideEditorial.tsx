@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import GemLinksPanel from "./GemLinksPanel";
-import GearPanel from "./GearPanel";
-import PassiveTreeCanvas, { AscendancyCanvas } from "./PassiveTreeCanvas";
 import { skillIconPath, ascendancyIconPath, skillInitial } from "./icons";
 import styles from "./editorial.module.css";
 
@@ -40,6 +38,9 @@ interface BuildGuide {
   useful_uniques_es: UniqueItem[];
   gear_data_life: GearData | null;
   gear_data_es: GearData | null;
+  pob_export: string | null;
+  pob_provenance: { snapshot: string; level: number; node_overlap: number; support_overlap: number; supports_rewritten: boolean } | null;
+  data_pending: boolean;
 }
 
 interface SelectedMeta {
@@ -59,8 +60,6 @@ interface Props {
 const SECTIONS = [
   { id: "overview", label: "Overview" },
   { id: "gems",     label: "Gem Links" },
-  { id: "gear",     label: "Gear" },
-  { id: "tree",     label: "Passive Tree" },
   { id: "play",     label: "Playstyle" },
 ];
 
@@ -76,18 +75,8 @@ function buildsAnalysed(guide: BuildGuide): number {
 
 export default function BuildGuideEditorial({ guide, selectedMeta, onReset }: Props) {
   const [activeSection, setActiveSection] = useState<string>("overview");
-  const [gearTab, setGearTab] = useState<"life" | "es">("life");
   const [skillIconOk, setSkillIconOk] = useState(true);
   const [ascIconOk, setAscIconOk] = useState(true);
-  const hasLife = !!guide.gear_data_life;
-  const hasEs   = !!guide.gear_data_es;
-  const gearData = gearTab === "life" ? guide.gear_data_life : guide.gear_data_es;
-  const gearUniques = gearTab === "life" ? guide.useful_uniques : guide.useful_uniques_es;
-
-  // Default to whichever variant has data (when only one exists)
-  useEffect(() => {
-    if (!hasLife && hasEs) setGearTab("es");
-  }, [hasLife, hasEs]);
 
   // Scroll-spy: highlight the section nearest the top of the viewport.
   useEffect(() => {
@@ -252,79 +241,6 @@ export default function BuildGuideEditorial({ guide, selectedMeta, onReset }: Pr
             )}
           </section>
 
-          {(hasLife || hasEs) && gearData && (
-            <section id="gear" className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>Gear</h2>
-                {hasLife && hasEs && (
-                  <div className={styles.gearTabs}>
-                    <button
-                      className={`${styles.gearTab} ${gearTab === "life" ? styles.gearTabActive : ""}`}
-                      onClick={() => setGearTab("life")}
-                    >
-                      Life
-                    </button>
-                    <button
-                      className={`${styles.gearTab} ${gearTab === "es" ? styles.gearTabActive : ""}`}
-                      onClick={() => setGearTab("es")}
-                    >
-                      Energy Shield
-                    </button>
-                  </div>
-                )}
-              </div>
-              <GearPanel data={gearData} usefulUniques={gearUniques ?? []} />
-            </section>
-          )}
-
-          <section id="tree" className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>Passive Tree</h2>
-              {guide.recommended_nodes?.length > 0 && (
-                <span className={styles.sectionSub}>
-                  {guide.recommended_nodes.length} mandatory · {guide.optional_nodes?.length ?? 0} optional
-                </span>
-              )}
-            </div>
-            <PassiveTreeCanvas
-              className={selectedMeta?.className}
-              ascendancy={guide.ascendancy}
-              highlightedNodes={guide.recommended_nodes}
-              optionalNodes={guide.optional_nodes ?? []}
-            />
-            {guide.recommended_nodes.length > 0 && (
-              <div className={styles.treeLegend}>
-                <span><span className={styles.dot} style={{ background: "#e8c84a" }} />Mandatory</span>
-                <span><span className={styles.dot} style={{ background: "#4ab8cc" }} />Optional</span>
-              </div>
-            )}
-
-            {selectedMeta?.ascendancy && (
-              <div className={styles.ascRow}>
-                <div className={styles.ascLegend}>
-                  <h4>Ascendancy Order</h4>
-                  {[
-                    { label: "1st", colour: "#e8c84a" },
-                    { label: "2nd", colour: "#4a9a5a" },
-                    { label: "3rd", colour: "#4a7acc" },
-                    { label: "4th", colour: "#cc4444" },
-                  ].map(({ label, colour }) => (
-                    <div key={label} className={styles.ascTier} style={{ color: colour }}>
-                      <span className={styles.dot} style={{ background: colour }} />
-                      <span>{label}</span>
-                    </div>
-                  ))}
-                </div>
-                <AscendancyCanvas
-                  className={selectedMeta.className}
-                  ascendancy={guide.ascendancy}
-                  highlightedNodes={guide.recommended_nodes}
-                  optionalNodes={guide.optional_nodes ?? []}
-                  ascNodes={guide.asc_nodes ?? []}
-                />
-              </div>
-            )}
-          </section>
 
           <section id="play" className={styles.section}>
             <div className={styles.sectionHead}>

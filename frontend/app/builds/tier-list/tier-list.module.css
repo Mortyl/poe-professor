@@ -1,0 +1,276 @@
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.main {
+  min-height: calc(100vh - 64px);
+  font-family: var(--font-serif);
+  position: relative;
+}
+.main::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 100% 100% at 50% 30%, transparent 30%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────── */
+.hero { text-align: center; padding: 72px 0 32px; }
+.flourish {
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.flourishLine {
+  height: 1px; width: 60px;
+  background: linear-gradient(to right, transparent, var(--amber-dim), transparent);
+}
+.flourishDiamond {
+  width: 8px; height: 8px;
+  background: var(--amber);
+  transform: rotate(45deg);
+  opacity: 0.7;
+}
+.flourishCenter { width: 10px; height: 10px; background: var(--amber-bright); opacity: 1; }
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  color: var(--amber-bright);
+  letter-spacing: 0.36em;
+  margin-bottom: 18px;
+  text-shadow: 0 0 24px rgba(212, 176, 120, 0.2);
+}
+.heroSubtitle {
+  color: var(--text-dim);
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.55;
+  margin: 0 auto;
+  max-width: 640px;
+}
+
+/* ── Mode controls ─────────────────────────────────────────────────────── */
+.controls { margin: 8px 0 36px; text-align: center; }
+.modeToggle {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.modeBtn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-right: 1px solid var(--line);
+}
+.modeBtn:last-child { border-right: none; }
+.modeBtn:hover { color: var(--text); }
+.modeBtnActive { color: var(--amber-bright); background: rgba(212, 176, 120, 0.08); }
+.modeBlurb {
+  margin-top: 12px;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* ── Status states ─────────────────────────────────────────────────────── */
+.loading { padding: 60px; text-align: center; color: var(--text-dim); font-style: italic; }
+.error {
+  margin: 0 auto 24px;
+  max-width: 600px;
+  padding: 12px 16px;
+  background: rgba(160, 40, 48, 0.1);
+  border: 1px solid var(--blood);
+  color: #e8c0c4;
+  font-size: 14px;
+  border-radius: 2px;
+}
+.empty { padding: 60px; text-align: center; color: var(--text-faint); font-style: italic; }
+
+/* ── Archetype block ──────────────────────────────────────────────────── */
+.archetype {
+  margin-bottom: 44px;
+}
+.archHead {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.archTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--amber);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.archIcon { font-size: 20px; }
+.archCount {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+/* ── Tier grid ─────────────────────────────────────────────────────────── */
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .tierGrid { grid-template-columns: 1fr 1fr; }
+}
+
+.tierColumn {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 10px 14px;
+  min-height: 80px;
+}
+.tierBadge {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.tier_S .tierBadge { color: #f0a830; }
+.tier_A .tierBadge { color: #d4b078; }
+.tier_B .tierBadge { color: #98a890; }
+.tier_C .tierBadge { color: #7a8090; }
+.tier_D .tierBadge { color: #5a606a; }
+
+.tierBuilds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tierEmpty {
+  color: var(--text-faint);
+  text-align: center;
+  font-style: italic;
+  padding: 16px 0;
+  font-size: 13px;
+}
+
+/* ── Flat row (small archetypes) ──────────────────────────────────────── */
+.lowSample {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+.flatRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.flatRow .buildCard { min-width: 200px; }
+
+/* ── Build card ────────────────────────────────────────────────────────── */
+.buildCard {
+  background: var(--bg-deep);
+  border-left: 2px solid var(--amber-dim);
+  padding: 9px 10px 10px;
+  border-radius: 2px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  position: relative;
+  transition: background .15s, border-color .15s;
+}
+.buildCard:hover {
+  background: rgba(212, 176, 120, 0.05);
+  border-left-color: var(--amber);
+}
+
+.buildCardPending {
+  opacity: 0.55;
+  border-left-style: dashed;
+}
+.buildCardPending:hover {
+  opacity: 0.85;
+}
+
+.buildPendingBadge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.buildSkill {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  line-height: 1.3;
+}
+.buildAsc {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+.buildStats {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+}
+.buildStatSecondary {
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+.buildRetention {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+.retentionPos { color: #82c98a; }
+.retentionNeg { color: #c87a82; }
+
+/* ── Legend ────────────────────────────────────────────────────────────── */
+.legend {
+  margin-top: 48px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  line-height: 1.6;
+}

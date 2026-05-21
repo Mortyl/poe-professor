@@ -5,6 +5,7 @@ load_dotenv()
 from models.schemas import BuildGuide, BuildRequest
 from services.knowledge_service import build_knowledge_context
 from services.tree_service import recommend_nodes_branched
+from services.pob_service import build_canonical_pob_code
 
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "pob_codes", "reports")
 
@@ -185,7 +186,7 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
             if top_rare_base_pct < 1.0 and slot_data.get("uniques"):
                 u = slot_data["uniques"][0]
                 top_unique = UniqueItem(name=u["name"], base=u["base"], slot=slot_name, pct=u["pct"])
-            mod_cap = 6 if slot_name in ("Weapon 1", "Weapon 2") else 4 if slot_name == "Body Armour" else 3
+            mod_cap = 6 if slot_name in ("Weapon 1", "Weapon 2") else 4
             top_mods = [m["mod"] for m in slot_data.get("top_mods", [])[:mod_cap]]
             gear_slots.append(GearSlot(
                 slot=slot_name,
@@ -327,6 +328,51 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
             and u["name"] not in slotted_es
         ][:4]
 
+    # ── Canonical PoB export ───────────────────────────────────────────
+    # Lift the supports we want the emitted PoB to carry from the gems
+    # report: pick the skill_gem matching the requested main skill, take
+    # its top 5 supports with pct >= 30 (broadly agreed-upon picks).
+    canonical_supports: list[str] = []
+    if gem_link_data is not None:
+        match = next(
+            (sg for sg in gem_link_data.skill_gems if sg.name.lower() == request.skill.lower()),
+            None,
+        )
+        # Fall back to first listed if the named skill isn't in the report
+        match = match or (gem_link_data.skill_gems[0] if gem_link_data.skill_gems else None)
+        if match is not None:
+            canonical_supports = [
+                s.name for s in sorted(match.supports, key=lambda x: -x.pct)
+                if s.pct >= 30.0
+            ][:5]
+
+    pob_export, pob_provenance = build_canonical_pob_code(
+        skill=request.skill,
+        ascendancy=request.ascendancy,
+        recommended_nodes=nodes,
+        recommended_supports=canonical_supports,
+        league=request.league_type,
+    )
+    pob_provenance_dict = (
+        {
+            "snapshot": pob_provenance.snapshot,
+            "level": pob_provenance.level,
+            "node_overlap": pob_provenance.node_overlap,
+            "support_overlap": pob_provenance.support_overlap,
+            "supports_rewritten": pob_provenance.supports_rewritten,
+        }
+        if pob_provenance is not None else None
+    )
+
+    # data_pending: we have the build in the DB (tree was computed) but no
+    # gem/gear/passive report exists yet. Frontend renders a friendly banner
+    # explaining the deep scrape hasn't reached this combo yet.
+    data_pending = (
+        gem_link_data is None
+        and gear_data_life is None
+        and gear_data_es is None
+    )
+
     return BuildGuide(
         skill=request.skill,
         ascendancy=request.ascendancy,
@@ -345,6 +391,9 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
         useful_uniques_es=useful_uniques_es,
         gear_data_life=gear_data_life,
         gear_data_es=gear_data_es,
+        pob_export=pob_export,
+        pob_provenance=pob_provenance_dict,
+        data_pending=data_pending,
     )
 
 

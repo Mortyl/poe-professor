@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import wizardStyles from "../../components/wizard.module.css";
+import wizardStyles from "../../../components/wizard.module.css";
 import styles from "./archetype.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";

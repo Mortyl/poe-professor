@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import builds, companion
+from routers import builds, companion, analyse, tier_list
 
 app = FastAPI(
     title="PoEProfessor API",
@@ -17,7 +17,9 @@ app.add_middleware(
 )
 
 app.include_router(builds.router, prefix="/api/builds", tags=["Builds"])
+app.include_router(tier_list.router, prefix="/api/builds", tags=["Builds"])
 app.include_router(companion.router)
+app.include_router(analyse.router, prefix="/api/analyse", tags=["Analyse"])
 
 @app.get("/")
 def root():

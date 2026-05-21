@@ -5,6 +5,7 @@ import styles from "./discovery.module.css";
 
 interface Props {
   onSelectBuild: (skill: string, ascendancy: string) => void;
+  middle?: React.ReactNode;
 }
 
 // ── Featured editorial lists ─────────────────────────────────────────────────
@@ -70,7 +71,7 @@ const SAMPLE_BUILDS: SampleBuild[] = [
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
-export default function BrowseDiscovery({ onSelectBuild }: Props) {
+export default function BrowseDiscovery({ onSelectBuild, middle }: Props) {
   const [facets, setFacets] = useState<Record<FacetKey, string>>({
     damage:   "Any",
     defense:  "Any",
@@ -100,6 +101,8 @@ export default function BrowseDiscovery({ onSelectBuild }: Props) {
           ))}
         </div>
       </section>
+
+      {middle}
 
       {/* ── Facet filters + sample results ───────────────────────────── */}
       <section className={styles.section}>

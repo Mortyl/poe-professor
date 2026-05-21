@@ -28,14 +28,17 @@ let bgTexture: Texture | null = null;
 let ascBgTextures = new Map<string, Texture>();
 let pixiAssetsLoaded: Promise<void> | null = null;
 
-// Node icon world-radius (sprite displayed size in world coords)
+// Node icon world-radius (sprite displayed size in world coords).
+// Must fit inside the transparent inner hole of the frame sprite, which is
+// ~60% of the sprite's natural pixel width for all frame types.
+// Icon = FRAME_SIZE × 0.55 keeps a visible gap between icon edge and ring.
 const NODE_SIZE: Record<number, number> = {
-  0: 80,    // Normal/travel
-  1: 150,   // Notable
-  2: 220,   // Keystone
-  3: 150,   // Jewel
+  0: 55,    // Normal/travel  (PSSkillFrame inner hole ~60px world)
+  1: 100,   // Notable        (NotableFrame inner hole ~108px world)
+  2: 150,   // Keystone       (KeystoneFrame inner hole ~162px world)
+  3: 100,   // Jewel          (JewelFrame inner hole ~108px world)
 };
-// Frame size — slightly larger than icon so frame ring sits outside icon
+// Frame size — the frame ring sprite rendered at this world-space diameter
 const FRAME_SIZE: Record<number, number> = {
   0: 100,
   1: 180,
@@ -188,6 +191,10 @@ export default function PassiveTreeCanvas({
         console.error("[Tree] PIXI 7 init failed:", err);
         return;
       }
+      // PIXI sets canvas.style.width/height to pixel values — override so CSS
+      // width:100% takes effect and the canvas fills its container.
+      canvasEl.style.width = "100%";
+      canvasEl.style.height = "auto";
       // Tear down PIXI's event listening — we don't want it hit-testing anything
       // Disable PIXI's event system entirely — it removes the DOM listeners
       // and detaches cleanly. We drive all interaction via our own DOM events.
@@ -491,9 +498,8 @@ export default function PassiveTreeCanvas({
 }
 
 // ── Ascendancy canvas — PIXI 7 ───────────────────────────────────────────────
-// Normalised — same frame size for every ascendancy node regardless of
-// type or endpoint role. Matches PoB's uniform sizing.
-const ASC_FRAME_R: Record<number, number> = { 0: 140, 1: 140, 2: 140, 3: 140 };
+// Notables (type 1) and endpoints render larger than travel nodes (type 0).
+const ASC_FRAME_R: Record<number, number> = { 0: 115, 1: 175, 2: 190, 3: 130 };
 const ASC_ICON_FRACTION = 0.62;
 
 export function AscendancyCanvas({
@@ -525,7 +531,10 @@ export function AscendancyCanvas({
     ascLines: import("./treeData").Line[];
     ascArcs:  import("./treeData").Arc[];
     tierOfNode: Map<number, number>;
+    endpointSet: Set<number>;
     startId: number | undefined;
+    nodes: NodeData[];
+    cam: { tx: number; ty: number; scale: number };
   }>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
 
@@ -623,23 +632,43 @@ export function AscendancyCanvas({
         if (i % 2 === 1) endpointSet.add(id);
       });
 
-      // When activeTier is set we only treat nodes in that tier as "highlighted gold".
-      // The asc-start node always counts as highlighted so the path leads from it.
       const startNode = treeNodes.find(n => ascStartSet?.has(n.id));
       const startId = startNode?.id;
-      const isActiveNode = (id: number): boolean => {
-        if (startId !== undefined && id === startId) return true;
-        if (activeTier == null) return tierOfNode.has(id);   // no filter: all tier nodes
-        return tierOfNode.get(id) === activeTier;
-      };
 
-      const core = new Set(highlightedNodes);
-      const opt  = new Set(optionalNodes);
       const ascNodeIds = new Set(treeNodes.map(n => n.id));
       const ascLines = data.lines.filter(l => ascNodeIds.has(l.n1) && ascNodeIds.has(l.n2));
       const ascArcs  = data.arcs .filter(a => ascNodeIds.has(a.n1) && ascNodeIds.has(a.n2));
 
-      // An edge is "gold" when BOTH endpoints are active (highlighted).
+      // Gateway nodes: free non-start ascendancy nodes that bridge paid tier nodes
+      // (e.g. Deadeye's 42416 which is auto-allocated between 61461 and the PoB choices).
+      // Detected by having 2+ adjacent paid tier nodes. Stored at tier -1 so they
+      // are always active regardless of activeTier.
+      for (const n of treeNodes) {
+        if (tierOfNode.has(n.id) || (ascStartSet?.has(n.id) ?? false)) continue;
+        let tierNeighbourCount = 0;
+        for (const l of ascLines) {
+          if (l.n1 === n.id && tierOfNode.has(l.n2)) tierNeighbourCount++;
+          if (l.n2 === n.id && tierOfNode.has(l.n1)) tierNeighbourCount++;
+        }
+        for (const a of ascArcs) {
+          if (a.n1 === n.id && tierOfNode.has(a.n2)) tierNeighbourCount++;
+          if (a.n2 === n.id && tierOfNode.has(a.n1)) tierNeighbourCount++;
+        }
+        if (tierNeighbourCount >= 2) tierOfNode.set(n.id, -1);
+      }
+
+      // When activeTier is set we only treat nodes up to that tier as "highlighted gold".
+      // Gateway nodes (tier=-1) are always active. The asc-start is always active too.
+      const isActiveNode = (id: number): boolean => {
+        if (startId !== undefined && id === startId) return true;
+        if (activeTier == null) return tierOfNode.has(id);
+        const t = tierOfNode.get(id);
+        return t !== undefined && t <= activeTier;
+      };
+
+      const core = new Set(highlightedNodes);
+      const opt  = new Set(optionalNodes);
+
       const isGoldEdge = (n1: number, n2: number) => isActiveNode(n1) && isActiveNode(n2);
 
       const edgeGfx = new pixi.Graphics();
@@ -679,10 +708,8 @@ export function AscendancyCanvas({
         const isEndpoint = endpointSet.has(n.id);
 
         if (isStart) {
-          const startR = 110;
-          // JewelFrameAllocated is the gold diamond socket — PoE renders
-          // jewel sockets (and ascendancy entries) with this diamond art.
-          const diamondTex = getSubTexture(pixi, "JewelFrameAllocated");
+          const startR = 80;
+          const diamondTex = getSubTexture(pixi, "AscendancyMiddle");
           if (diamondTex) {
             const sprite = new pixi.Sprite(diamondTex);
             sprite.anchor.set(0.5);
@@ -690,7 +717,6 @@ export function AscendancyCanvas({
             sprite.width = sprite.height = startR * 2;
             nodeContainer.addChild(sprite);
           } else {
-            // Fallback: dark socket
             const startTex = getSubTexture(pixi, "PSStartNodeBackgroundInactive");
             if (startTex) {
               const sprite = new pixi.Sprite(startTex);
@@ -703,11 +729,12 @@ export function AscendancyCanvas({
           continue;
         }
 
-        const baseR = isEndpoint ? ASC_FRAME_R[1] : (ASC_FRAME_R[n.type] ?? ASC_FRAME_R[0]);
+        const baseR = ASC_FRAME_R[n.type] ?? ASC_FRAME_R[0];
         const frameSize = baseR;
 
         // Always use the unallocated frame variant (highlight = halo)
-        const ascSize = isEndpoint ? "Large" : "Small";
+        const isLarge = n.type === 1 || n.type === 2;
+        const ascSize = isLarge ? "Large" : "Small";
         const ascFrameKey = `${ascendancy}Frame${ascSize}Normal`;
         let frameTex = getSubTexture(pixi, ascFrameKey);
         if (!frameTex) {
@@ -756,7 +783,10 @@ export function AscendancyCanvas({
         ascLines,
         ascArcs,
         tierOfNode,
+        endpointSet,
         startId,
+        nodes: treeNodes,
+        cam: { tx: camState.tx, ty: camState.ty, scale: camState.scale },
       };
 
       // camera already positioned/zoomed at fitScale above
@@ -826,21 +856,46 @@ export function AscendancyCanvas({
     }
   }, [activeTier]);
 
+  function onAscPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const s = sceneRef.current;
+    if (!s || !mountRef.current) { setTooltip(null); return; }
+    const rect = mountRef.current.getBoundingClientRect();
+    const cpx = e.clientX - rect.left;
+    const cpy = e.clientY - rect.top;
+    const wx = (cpx - s.cam.tx) / s.cam.scale;
+    const wy = (cpy - s.cam.ty) / s.cam.scale;
+    const thresh = (HIT_RADIUS / s.cam.scale) ** 2;
+    let best: NodeData | null = null;
+    let bestD = Infinity;
+    for (const n of s.nodes) {
+      const d = (n.x - wx) ** 2 + (n.y - wy) ** 2;
+      if (d < thresh && d < bestD) { bestD = d; best = n; }
+    }
+    if (best) {
+      setTooltip({ cx: e.clientX, cy: e.clientY, id: best.id, name: best.name, stats: best.stats, type: best.type });
+    } else {
+      setTooltip(null);
+    }
+  }
+
   return (
-    <div ref={mountRef} style={{ position: "relative" }}>
+    <div ref={mountRef} style={{ position: "relative" }}
+      onPointerMove={onAscPointerMove}
+      onPointerLeave={() => setTooltip(null)}
+    >
       <canvas
         ref={canvasRef}
         style={{
           display: "block", width: "380px", height: "380px",
-          borderRadius: "4px", border: "1px solid #1a2030", cursor: "grab",
+          borderRadius: "4px", border: "1px solid #1a2030", cursor: "default",
         }}
       />
       {tooltip && (
         <div style={{
-          position: "absolute", left: tooltip.cx + 14, top: tooltip.cy - 8,
+          position: "fixed", left: tooltip.cx + 14, top: tooltip.cy - 8,
           pointerEvents: "none", background: "rgba(10,10,20,0.95)",
           border: "1px solid #666688", borderRadius: "4px",
-          padding: "8px 12px", minWidth: "160px", maxWidth: "260px", zIndex: 10,
+          padding: "8px 12px", minWidth: "160px", maxWidth: "260px", zIndex: 9999,
         }}>
           <div style={{ color: "#666", fontSize: "10px", marginBottom: "2px" }}>#{tooltip.id}</div>
           <div style={{ color: "#fff", fontWeight: "bold", marginBottom: "4px", fontSize: "13px" }}>

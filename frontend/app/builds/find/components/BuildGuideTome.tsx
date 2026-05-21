@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import GearPanel from "./GearPanel";
 import PassiveTreeCanvas from "./PassiveTreeCanvasPixi";
 import AscendancyWidget from "./AscendancyWidget";
@@ -40,6 +41,17 @@ interface BuildGuide {
   useful_uniques_es: UniqueItem[];
   gear_data_life: GearData | null;
   gear_data_es: GearData | null;
+  pob_export: string | null;
+  pob_provenance: PobProvenance | null;
+  data_pending: boolean;
+}
+
+interface PobProvenance {
+  snapshot: string;
+  level: number;
+  node_overlap: number;
+  support_overlap: number;
+  supports_rewritten: boolean;
 }
 
 interface SelectedMeta {
@@ -56,8 +68,6 @@ interface Props {
   onReset: () => void;
 }
 
-// Which slots get featured in the tome's compact gear list.
-// (Full doll with everything else still renders below the tome.)
 const TOME_GEAR_SLOTS = ["Helmet", "Body Armour", "Weapon 1", "Weapon 2", "Gloves", "Boots"];
 
 const LEAGUE_LABELS: Record<string, string> = {
@@ -81,22 +91,93 @@ function truncate(s: string, max: number): string {
 }
 
 export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) {
+  const { data: session } = useSession();
+  const router = useRouter();
+
   const [gearTab, setGearTab] = useState<"life" | "es">("life");
+  const [pobCopied, setPobCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const shareGuide = async () => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/builds/find`
+      + `?skill=${encodeURIComponent(guide.skill)}`
+      + `&ascendancy=${encodeURIComponent(guide.ascendancy)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      window.prompt("Copy this share link:", url);
+    }
+  };
+
+  // Save-guide UI state
+  const [savePanelOpen, setSavePanelOpen] = useState(false);
+  const [saveLabel, setSaveLabel] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<null | "saved" | "deduped" | "error">(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveGuide = async () => {
+    if (!session?.user) {
+      const target = `/builds/find?skill=${encodeURIComponent(guide.skill)}&ascendancy=${encodeURIComponent(guide.ascendancy)}`;
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(target)}`);
+      return;
+    }
+    setSaving(true);
+    setSaveStatus(null);
+    setSaveError(null);
+    try {
+      const r = await fetch("/api/me/builds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skill: guide.skill,
+          ascendancy: guide.ascendancy,
+          className: selectedMeta?.className ?? null,
+          leagueType: selectedMeta?.leagueType ?? "sc",
+          label: saveLabel.trim() || null,
+        }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(e.error ?? r.statusText);
+      }
+      const data = await r.json();
+      setSaveStatus(data.deduped ? "deduped" : "saved");
+      setSaveLabel("");
+      // Auto-close the panel after a beat
+      setTimeout(() => setSavePanelOpen(false), 2200);
+    } catch (e) {
+      setSaveStatus("error");
+      setSaveError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyPob = async () => {
+    if (!guide.pob_export) return;
+    try {
+      await navigator.clipboard.writeText(guide.pob_export);
+      setPobCopied(true);
+      setTimeout(() => setPobCopied(false), 1800);
+    } catch {
+      // Clipboard API can fail on insecure contexts — silently ignore
+    }
+  };
   const hasLife = !!guide.gear_data_life;
   const hasEs   = !!guide.gear_data_es;
   const gearData    = gearTab === "life" ? guide.gear_data_life : guide.gear_data_es;
   const gearUniques = gearTab === "life" ? guide.useful_uniques : guide.useful_uniques_es;
 
-  // Default to whichever variant has data
   useEffect(() => {
     if (!hasLife && hasEs) setGearTab("es");
   }, [hasLife, hasEs]);
 
   const n = buildsAnalysed(guide);
-  const tomeGearRows = (gearData?.slots ?? []).filter(s => TOME_GEAR_SLOTS.includes(s.slot));
-  // Sort tome gear rows in the order of TOME_GEAR_SLOTS, not the API order
-  tomeGearRows.sort((a, b) => TOME_GEAR_SLOTS.indexOf(a.slot) - TOME_GEAR_SLOTS.indexOf(b.slot));
-  const topGemGroups = guide.gem_link_data?.skill_gems?.slice(0, 3) ?? [];
+  const topGemGroups = guide.gem_link_data?.skill_gems ?? [];
 
   const playstyleParas = guide.playstyle_tips
     ? guide.playstyle_tips.split(/\n\n+/).filter(p => p.trim().length > 0)
@@ -109,22 +190,20 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
   return (
     <div className={styles.wrap}>
 
-      {/* Breadcrumb */}
-      <div className={styles.crumbs}>
-        <Link href="/builds">Builds</Link>
-        <span className={styles.sep}>›</span>
-        <span>{guide.ascendancy}</span>
-        <span className={styles.sep}>›</span>
-        <span>{guide.skill}</span>
-      </div>
+      {guide.data_pending && (
+        <div className={styles.dataPending}>
+          <strong>Data pending.</strong> We know this build is in the meta, but our deep
+          scrape hasn&apos;t reached it yet — gem, gear and PoB sections will populate
+          once analysis completes. The passive tree below is suggested by the
+          recommender and is the safest part to trust right now.
+        </div>
+      )}
 
       {/* ── TOME ─────────────────────────────────────────────────────── */}
       <div className={styles.tome}>
 
         {/* Left page: story */}
         <div className={styles.page}>
-          <div className={styles.pageNumber}>Prologue</div>
-
           {leagueLabel && <span className={styles.heroTag}>{leagueLabel}</span>}
           <h1 className={styles.heroName}>{guide.skill}</h1>
           <p className={styles.heroSub}>
@@ -154,25 +233,10 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
             </>
           )}
 
-          <div className={styles.storySub}>Tagged As</div>
-          <div className={styles.pillRow}>
-            {selectedMeta?.className && (
-              <span className={`${styles.pill} ${styles.pillOn}`}>{selectedMeta.className}</span>
-            )}
-            {guide.ascendancy && (
-              <span className={`${styles.pill} ${styles.pillOn}`}>{guide.ascendancy}</span>
-            )}
-            {selectedMeta?.weapon && (
-              <span className={`${styles.pill} ${styles.pillOn}`}>{selectedMeta.weapon}</span>
-            )}
-            {leagueLabel && (
-              <span className={`${styles.pill} ${styles.pillOn}`}>{leagueLabel}</span>
-            )}
-          </div>
 
           {guide.ascendancy && (
             <>
-              <div className={styles.storySub}>Ascendancy</div>
+              <div className={styles.storySub} style={{ marginTop: "auto", paddingTop: "32px" }}>Ascendancy</div>
               <div style={{ marginTop: "8px" }}>
                 <AscendancyWidget
                   className={selectedMeta?.className}
@@ -196,15 +260,6 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
           {n > 0 && (
             <span className={styles.dataLabel}>From {n.toLocaleString()} Real Builds</span>
           )}
-          <div className={styles.dataMeta}>
-            {selectedMeta?.className && (
-              <span>Class<strong>{selectedMeta.className}</strong></span>
-            )}
-            <span>Ascendancy<strong>{guide.ascendancy}</strong></span>
-            {guide.recommended_nodes.length > 0 && (
-              <span>Tree<strong>{guide.recommended_nodes.length} nodes</strong></span>
-            )}
-          </div>
 
           {/* Gem Links (top 3) */}
           {topGemGroups.length > 0 && (
@@ -241,57 +296,9 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
             </>
           )}
 
-          {/* Gear highlights */}
-          {tomeGearRows.length > 0 && gearData && (
-            <>
-              <div className={styles.subhead}>
-                <span>Gear · {gearTab === "life" ? "Life" : "Energy Shield"}</span>
-                <span className={styles.sourceN}>n = {gearData.builds_analysed.toLocaleString()}</span>
-              </div>
-              {tomeGearRows.map((slot, i) => {
-                const useUnique = !!slot.top_unique;
-                const itemName  = useUnique ? slot.top_unique!.name : slot.top_rare_base;
-                const baseName  = useUnique ? slot.top_unique!.base : "Rare";
-                const pct       = useUnique ? slot.top_unique!.pct : slot.top_rare_base_pct;
-                const iconSrc   = itemIconPath(itemName, baseName);
-                return (
-                  <div key={i} className={styles.gearRow}>
-                    <div className={styles.gearIcon}>
-                      {iconSrc && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={iconSrc} alt="" width={36} height={36} />
-                      )}
-                    </div>
-                    <span className={styles.slotName}>{slot.slot}</span>
-                    <div>
-                      <span className={`${styles.itemName} ${useUnique ? styles.itemNameUnique : ""}`}>
-                        {itemName || "—"}
-                      </span>
-                      <span className={styles.itemBase}>
-                        {baseName}{pct !== undefined && pct > 0 ? ` · ${pct.toFixed(0)}%` : ""}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-
-          {/* Tree thumb + link */}
-          {guide.recommended_nodes.length > 0 && (
-            <>
-              <div className={styles.subhead}>
-                <span>Passive Tree</span>
-                <span className={styles.sourceN}>
-                  {guide.recommended_nodes.length} core · {guide.optional_nodes.length} opt
-                </span>
-              </div>
-              <div className={styles.treeThumb}>— tree preview —</div>
-              <a href="#full-tree" className={styles.openTree}>Open Full Tree →</a>
-            </>
-          )}
         </div>
       </div>
+
 
       {/* ── Detail sections below the tome ──────────────────────────── */}
 
@@ -326,23 +333,16 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
       {gearData && (
         <section className={styles.detailSection}>
           <h2 className={styles.detailTitle}>Gear</h2>
-          {hasLife && hasEs && (
-            <div className={styles.gearTabs}>
-              <button
-                onClick={() => setGearTab("life")}
-                className={`${styles.gearTab} ${gearTab === "life" ? styles.gearTabActive : ""}`}
-              >
-                Life
-              </button>
-              <button
-                onClick={() => setGearTab("es")}
-                className={`${styles.gearTab} ${gearTab === "es" ? styles.gearTabActive : ""}`}
-              >
-                Energy Shield
-              </button>
-            </div>
-          )}
-          <GearPanel data={gearData} usefulUniques={gearUniques ?? []} />
+          <div style={{ maxWidth: "1000px", marginLeft: "auto", marginRight: "auto" }}>
+            <GearPanel
+              data={gearData}
+              usefulUniques={gearUniques ?? []}
+              hasLife={hasLife}
+              hasEs={hasEs}
+              gearTab={gearTab}
+              setGearTab={setGearTab}
+            />
+          </div>
         </section>
       )}
 
@@ -351,8 +351,57 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
       )}
 
       <div className={styles.actions}>
-        <button className={styles.backButton} onClick={onReset}>← Build Another</button>
+        <button className={styles.backButton} onClick={onReset}>← Back</button>
+        {guide.pob_export && (
+          <button className={styles.backButton} onClick={copyPob}>
+            {pobCopied ? "Copied!" : "PoB"}
+          </button>
+        )}
+        <button className={styles.backButton} onClick={shareGuide}>
+          {shareCopied ? "Link copied!" : "Share"}
+        </button>
+        {session?.user && (
+          <button
+            className={styles.backButton}
+            onClick={() => {
+              setSavePanelOpen((v) => !v);
+              setSaveStatus(null);
+            }}
+          >
+            {savePanelOpen ? "Cancel" : "Save"}
+          </button>
+        )}
       </div>
+
+      {savePanelOpen && session?.user && (
+        <div className={styles.savePanel}>
+          <input
+            className={styles.saveInput}
+            placeholder='Optional label — e.g. "league starter pick"'
+            value={saveLabel}
+            onChange={(e) => setSaveLabel(e.target.value)}
+            maxLength={80}
+            disabled={saving}
+          />
+          <button
+            className={styles.backButton}
+            onClick={handleSaveGuide}
+            disabled={saving}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          {saveStatus === "saved" && <div className={styles.saveMsg}>Saved to <a href="/me/builds" className={styles.saveMsgLink}>your guides</a>.</div>}
+          {saveStatus === "deduped" && <div className={styles.saveMsg}>Already in <a href="/me/builds" className={styles.saveMsgLink}>your guides</a>.</div>}
+          {saveStatus === "error" && <div className={styles.saveError}>Save failed: {saveError}</div>}
+        </div>
+      )}
+      {guide.pob_export && guide.pob_provenance && (
+        <div className={styles.pobProvenance}>
+          {guide.pob_provenance.supports_rewritten
+            ? <>Based on a real lvl {guide.pob_provenance.level} player&apos;s build {guide.pob_provenance.snapshot ? `(${guide.pob_provenance.snapshot})` : ""} — gem supports rewritten to match this guide.</>
+            : <>Based on a real lvl {guide.pob_provenance.level} player&apos;s build {guide.pob_provenance.snapshot ? `(${guide.pob_provenance.snapshot})` : ""}. No support changes applied.</>}
+        </div>
+      )}
     </div>
   );
 }

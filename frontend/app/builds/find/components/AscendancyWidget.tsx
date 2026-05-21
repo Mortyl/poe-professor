@@ -32,11 +32,11 @@ export default function AscendancyWidget({
   ascNodes = [],
 }: Props) {
   const filledTiers = Math.floor((ascNodes.length || 0) / 2);
-  const [activeTier, setActiveTier] = useState<number | null>(null);
+  const [activeTier, setActiveTier] = useState<number>(0);
 
   const onTierClick = (i: number) => {
-    if (i >= filledTiers) return;       // empty tier — no-op
-    setActiveTier(prev => (prev === i ? null : i));   // toggle: click again to clear
+    if (i >= filledTiers) return;
+    setActiveTier(i);
   };
 
   return (
@@ -59,7 +59,7 @@ export default function AscendancyWidget({
       <div className={styles.tierRow}>
         {TIER_LABELS.map((label, i) => {
           const filled = i < filledTiers;
-          const isActive = activeTier === i;
+          const isActive = i <= activeTier;
           const cls = [
             styles.tierDot,
             styles[TIER_CLASSES[i]],
@@ -73,7 +73,7 @@ export default function AscendancyWidget({
               className={cls}
               onClick={() => onTierClick(i)}
               disabled={!filled}
-              aria-pressed={isActive}
+              aria-pressed={i === activeTier}
               title={filled ? `Highlight tier ${label} path` : `No tier ${label} chosen`}
             >
               {label}
