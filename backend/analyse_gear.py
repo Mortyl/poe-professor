@@ -24,9 +24,13 @@ from collections import defaultdict, Counter
 POB_DIR    = os.path.join(os.path.dirname(__file__), "pob_codes")
 REPORT_DIR = os.path.join(POB_DIR, "reports")
 
-# Which snapshots count for each experience level
+# Which snapshots count for each experience level.
+# Endgame intentionally pools day-2..week-6 — that wider range lets us bucket
+# by character level inside the report (early-EG lvl 80-95 sourced primarily
+# from day-* snapshots, late-EG lvl 96+ from week-* snapshots).
 LEAGUE_STARTER_SNAPSHOTS = {"day-1", "day-2", "day-3", "day-4", "day-5", "latest"}
-ENDGAME_SNAPSHOTS        = {"week-1", "week-2", "week-3", "week-4", "week-5", "week-6"}
+ENDGAME_SNAPSHOTS        = {"day-2", "day-3", "day-4", "day-5", "day-6",
+                            "week-1", "week-2", "week-3", "week-4", "week-5", "week-6"}
 # Exotic mode pools the wide day-4..week-4 window for low-builds combos
 EXOTIC_SNAPSHOTS         = {"day-4", "day-5", "day-6", "week-1", "week-2", "week-3", "week-4"}
 
@@ -37,6 +41,46 @@ def _snapshots_for(experience_level: str) -> set[str]:
     if experience_level == "endgame":
         return ENDGAME_SNAPSHOTS
     return LEAGUE_STARTER_SNAPSHOTS
+
+
+# ── Tier semantics ─────────────────────────────────────────────────────────
+# Threshold-based labels we attach to gear / unique items. Saves the frontend
+# from re-deriving "is this mandatory or optional" from the raw percentage.
+def _tier_label(pct: float) -> str:
+    if pct >= 85: return "mandatory"
+    if pct >= 50: return "recommended"
+    if pct >= 25: return "common"
+    return "niche"
+
+
+# ── Level bucketing (endgame only) ─────────────────────────────────────────
+# poe.ninja's top-100-by-level ordering means we never see lvl < ~92, but the
+# time-machine returns historical PoBs — so day-* snapshots of the same chars
+# give us their lvl 92-95 state. We use level (not snapshot label) as the
+# bucket axis because it's the dimension users actually think in.
+LEVEL_BUCKETS: list[tuple[str, int, int]] = [
+    ("early", 80, 95),   # "just hit maps" cohort
+    ("late",  96, 100),  # "fully optimised" cohort
+]
+
+
+def _level_bucket(level: int) -> str | None:
+    for name, lo, hi in LEVEL_BUCKETS:
+        if lo <= level <= hi:
+            return name
+    return None
+
+
+def _get_level(xml_bytes: bytes) -> int:
+    """Return character level from a PoB XML, or 0 on failure."""
+    try:
+        root = ET.fromstring(xml_bytes)
+        build = root.find("Build")
+        if build is not None:
+            return int(build.get("level", 0))
+    except Exception:
+        pass
+    return 0
 
 # Slots we care about — skip swap weapon set and flasks
 TARGET_SLOTS = [
@@ -383,12 +427,173 @@ def _top_uniques_from_slots(slot_uniques, builds_analysed: int) -> list[dict]:
         for key, count in slot_uniques[slot].items():
             name, base = key.split("|", 1)
             if name not in all_uniques or count > all_uniques[name]["count"]:
+                pct = round(count / builds_analysed * 100, 1)
                 all_uniques[name] = {
                     "name": name, "base": base, "slot": slot,
                     "count": count,
-                    "pct": round(count / builds_analysed * 100, 1),
+                    "pct": pct,
+                    "tier": _tier_label(pct),
                 }
     return sorted(all_uniques.values(), key=lambda x: x["count"], reverse=True)[:10]
+
+
+# ── Signature item detection (co-occurrence) ───────────────────────────────
+# "Signature" means the items that define the build's identity, not just the
+# top-ranked items per slot. Surfaces three categories:
+#   - mandatory: any single unique at >=85% adoption
+#   - pairs: two uniques that co-occur in >=50% of builds
+#   - trinity: three uniques co-occurring in >=30% of builds
+# Identity is via the unique's name (cross-slot — Kalandra's Touch on either
+# ring slot collapses to one item).
+def _build_unique_sets(xml_list: list[bytes]) -> tuple[list[set[str]], dict[str, str]]:
+    """Return per-build sets of unique-item names and a name→base lookup."""
+    per_build: list[set[str]] = []
+    name_base: dict[str, str] = {}
+    for xml_bytes in xml_list:
+        names_this_build: set[str] = set()
+        # Slot items
+        for item in parse_items(xml_bytes).values():
+            if item.get("rarity") == "UNIQUE" and item.get("name"):
+                n = item["name"]
+                names_this_build.add(n)
+                if n not in name_base:
+                    name_base[n] = item.get("base", "")
+        # Jewels
+        for jewel in parse_jewels(xml_bytes):
+            if jewel.get("rarity") == "UNIQUE" and jewel.get("name"):
+                n = jewel["name"]
+                names_this_build.add(n)
+                if n not in name_base:
+                    name_base[n] = jewel.get("base", "")
+        if names_this_build:
+            per_build.append(names_this_build)
+    return per_build, name_base
+
+
+def _compute_signatures(xml_list: list[bytes]) -> dict:
+    """
+    Compute signature items: solo (mandatory), pairs, and trinities.
+
+    Returns a dict shaped:
+        {"mandatory": [{name, base, pct, tier}, ...],
+         "pairs":     [{items: [name, name], joint_pct}, ...],
+         "trinity":   [{items: [name, name, name], joint_pct}, ...]}
+    """
+    n = len(xml_list)
+    if n < 20:  # too small to compute meaningful co-occurrence
+        return {"mandatory": [], "pairs": [], "trinity": []}
+
+    per_build, name_base = _build_unique_sets(xml_list)
+    if not per_build:
+        return {"mandatory": [], "pairs": [], "trinity": []}
+
+    # Individual counts
+    indiv: Counter = Counter()
+    for build in per_build:
+        for name in build:
+            indiv[name] += 1
+
+    # Mandatory: any unique at >=85% individual usage
+    mandatory = []
+    for name, c in indiv.most_common():
+        pct = round(c / n * 100, 1)
+        if pct < 85.0:
+            break
+        mandatory.append({
+            "name": name,
+            "base": name_base.get(name, ""),
+            "pct":  pct,
+            "tier": "mandatory",
+        })
+
+    # Candidates for pair/trinity: >=50% individual usage
+    candidates = [name for name, c in indiv.items() if c / n >= 0.50]
+
+    # Pair co-occurrence: joint usage >= 50%
+    pairs = []
+    for i, x in enumerate(candidates):
+        for y in candidates[i+1:]:
+            joint = sum(1 for build in per_build if x in build and y in build)
+            joint_pct = round(joint / n * 100, 1)
+            if joint_pct >= 50.0:
+                pairs.append({
+                    "items":     sorted([x, y]),
+                    "joint_pct": joint_pct,
+                })
+    pairs.sort(key=lambda p: -p["joint_pct"])
+
+    # Trinity co-occurrence: joint usage >= 30%
+    trinities = []
+    for i, x in enumerate(candidates):
+        for j in range(i + 1, len(candidates)):
+            y = candidates[j]
+            for k in range(j + 1, len(candidates)):
+                z = candidates[k]
+                joint = sum(1 for build in per_build if x in build and y in build and z in build)
+                joint_pct = round(joint / n * 100, 1)
+                if joint_pct >= 30.0:
+                    trinities.append({
+                        "items":     sorted([x, y, z]),
+                        "joint_pct": joint_pct,
+                    })
+    trinities.sort(key=lambda t: -t["joint_pct"])
+
+    return {
+        "mandatory": mandatory[:5],
+        "pairs":     pairs[:10],
+        "trinity":   trinities[:5],
+    }
+
+
+def _apply_tiers_to_list(items: list[dict]) -> list[dict]:
+    """Stamp a 'tier' field onto each item dict based on its 'pct'."""
+    for item in items:
+        if "pct" in item and "tier" not in item:
+            item["tier"] = _tier_label(item["pct"])
+    return items
+
+
+def _build_section(xml_list: list[bytes]) -> dict:
+    """Build one section dict (life or es, or a level-bucketed slice) from XMLs."""
+    n = len(xml_list)
+    st, su, sb, sm, cb_agg, cu_agg, ju, jb, jbm = _accumulate_slots(xml_list)
+    slots_out   = _build_slots_out(st, su, sb, sm, n)
+    top_uniques = _top_uniques_from_slots(su, n)
+
+    charm_bases_out = _apply_tiers_to_list([
+        {"base": b, "count": c, "pct": round(c / n * 100, 1)}
+        for b, c in cb_agg.most_common(10)
+    ])
+    charm_uniques_out = _apply_tiers_to_list([
+        {"name": k.split("|")[0], "base": k.split("|")[1], "count": c,
+         "pct": round(c / n * 100, 1)}
+        for k, c in cu_agg.most_common(10)
+    ])
+    jewel_uniques_out = _apply_tiers_to_list([
+        {"name": k.split("|")[0], "base": k.split("|")[1], "count": c,
+         "pct": round(c / n * 100, 1)}
+        for k, c in ju.most_common(10)
+    ])
+    jewel_bases_out = _apply_tiers_to_list([
+        {
+            "base":     b,
+            "count":    c,
+            "pct":      round(c / n * 100, 1),
+            "top_mods": [mod for mod, _ in jbm[b].most_common(3)],
+        }
+        for b, c in jb.most_common(10)
+    ])
+
+    return {
+        "builds_analysed":  n,
+        "top_uniques":      top_uniques,
+        "charm_bases":      charm_bases_out,
+        "charm_uniques":    charm_uniques_out,
+        "jewel_uniques":    jewel_uniques_out,
+        "jewel_bases":      jewel_bases_out,
+        "slots":            slots_out,
+        "signature_items":  _compute_signatures(xml_list),
+    }
 
 
 def analyse(skill: str, ascendancy: str, experience_level: str,
@@ -431,90 +636,79 @@ def analyse(skill: str, ascendancy: str, experience_level: str,
     print(f"Loading [{experience_level}] builds for {label}...")
     print(f"  {len(entries)} raw entries found in JSONL files")
 
-    # Split builds into life vs ES based on Life PlayerStat
-    life_xmls: list[bytes] = []
-    es_xmls:   list[bytes] = []
-
+    # Decode each PoB once and capture (xml, life, level) tuples so we can
+    # partition by life-vs-ES AND by level bucket without re-parsing.
+    parsed: list[tuple[bytes, float, int]] = []
     for entry in entries:
         xml_bytes = decode_pob(entry["code"])
         if not xml_bytes:
             continue
-        life_val = get_life(xml_bytes)
-        if life_val <= 1:
-            es_xmls.append(xml_bytes)
-        else:
-            life_xmls.append(xml_bytes)
+        parsed.append((xml_bytes, get_life(xml_bytes), _get_level(xml_bytes)))
 
+    life_xmls = [x for x, lf, _ in parsed if lf > 1]
+    es_xmls   = [x for x, lf, _ in parsed if lf <= 1]
     print(f"  Life builds: {len(life_xmls)}  |  ES builds: {len(es_xmls)}\n")
 
-    # Accumulate and build output for each type
-    results = {}
+    # ── Legacy life/es sections (combined across all levels) ─────────────
+    results: dict[str, dict] = {}
     for build_type, xml_list in [("life", life_xmls), ("es", es_xmls)]:
         if not xml_list:
             continue
-        n = len(xml_list)
-        st, su, sb, sm, charm_bases_agg, charm_uniques_agg, jewel_uniques, jewel_bases, jewel_base_mods = _accumulate_slots(xml_list)
-        slots_out   = _build_slots_out(st, su, sb, sm, n)
-        top_uniques = _top_uniques_from_slots(su, n)
+        section = _build_section(xml_list)
+        results[build_type] = section
 
-        charm_bases_out = [
-            {"base": b, "count": c, "pct": round(c / n * 100, 1)}
-            for b, c in charm_bases_agg.most_common(10)
-        ]
-        charm_uniques_agg_out = [
-            {"name": k.split("|")[0], "base": k.split("|")[1], "count": c,
-             "pct": round(c / n * 100, 1)}
-            for k, c in charm_uniques_agg.most_common(10)
-        ]
-
-        jewel_uniques_out = [
-            {"name": k.split("|")[0], "base": k.split("|")[1], "count": c,
-             "pct": round(c / n * 100, 1)}
-            for k, c in jewel_uniques.most_common(10)
-        ]
-        jewel_bases_out = [
-            {
-                "base":     b,
-                "count":    c,
-                "pct":      round(c / n * 100, 1),
-                "top_mods": [
-                    mod for mod, _ in jewel_base_mods[b].most_common(3)
-                ],
-            }
-            for b, c in jewel_bases.most_common(10)
-        ]
-
-        print(f"=== {build_type.upper()} BUILDS ({n}) ===")
-        print(f"--- TOP UNIQUES ---")
-        for u in top_uniques[:5]:
-            print(f"  {u['pct']:5.1f}%  {u['name']} ({u['base']}) [{u['slot']}]")
-        if charm_bases_out:
-            print(f"--- TOP CHARM BASES ---")
-            for cb in charm_bases_out[:5]:
-                print(f"  {cb['pct']:5.1f}%  {cb['base']}")
-        if charm_uniques_agg_out:
-            print(f"--- TOP UNIQUE CHARMS (cross-slot aggregated) ---")
-            for cu in charm_uniques_agg_out[:5]:
-                print(f"  {cu['pct']:5.1f}%  {cu['name']} ({cu['base']})")
-        if jewel_uniques_out:
-            print(f"--- TOP UNIQUE JEWELS ---")
-            for j in jewel_uniques_out[:5]:
-                print(f"  {j['pct']:5.1f}%  {j['name']} ({j['base']})")
-        if jewel_bases_out:
-            print(f"--- TOP JEWEL BASES ---")
-            for j in jewel_bases_out[:5]:
-                print(f"  {j['pct']:5.1f}%  {j['base']}")
+        # Console summary
+        print(f"=== {build_type.upper()} BUILDS ({len(xml_list)}) ===")
+        print("--- TOP UNIQUES ---")
+        for u in section["top_uniques"][:5]:
+            print(f"  {u['pct']:5.1f}%  [{u['tier']:11s}] {u['name']} ({u['base']}) [{u['slot']}]")
+        sigs = section["signature_items"]
+        if sigs["mandatory"]:
+            print("--- MANDATORY ---")
+            for m in sigs["mandatory"]:
+                print(f"  {m['pct']:5.1f}%  {m['name']}")
+        if sigs["pairs"]:
+            print("--- SIGNATURE PAIRS ---")
+            for p in sigs["pairs"][:3]:
+                print(f"  {p['joint_pct']:5.1f}%  {' + '.join(p['items'])}")
+        if sigs["trinity"]:
+            print("--- SIGNATURE TRINITY ---")
+            for t in sigs["trinity"][:3]:
+                print(f"  {t['joint_pct']:5.1f}%  {' + '.join(t['items'])}")
         print()
 
-        results[build_type] = {
-            "builds_analysed":  n,
-            "top_uniques":      top_uniques,
-            "charm_bases":      charm_bases_out,
-            "charm_uniques":    charm_uniques_agg_out,
-            "jewel_uniques":    jewel_uniques_out,
-            "jewel_bases":      jewel_bases_out,
-            "slots":            slots_out,
-        }
+    # ── Level-bucketed sections (endgame only) ──────────────────────────
+    # poe.ninja's leaderboard skews high, so this only produces meaningful
+    # split for endgame mode where we have day-* + week-* snapshot diversity.
+    level_buckets: dict[str, dict] = {}
+    if experience_level == "endgame":
+        for bucket_name, lo, hi in LEVEL_BUCKETS:
+            b_life = [x for x, lf, lvl in parsed if lf >  1 and lo <= lvl <= hi]
+            b_es   = [x for x, lf, lvl in parsed if lf <= 1 and lo <= lvl <= hi]
+            if not (b_life or b_es):
+                continue
+            bucket: dict = {
+                "level_range":     f"{lo}-{hi}" if hi < 100 else f"{lo}+",
+                "builds_analysed": len(b_life) + len(b_es),
+            }
+            # Only emit life/es sub-sections when there's enough data (min 20)
+            # to make signatures and percentages trustworthy.
+            if len(b_life) >= 20:
+                bucket["life"] = _build_section(b_life)
+            if len(b_es)   >= 20:
+                bucket["es"]   = _build_section(b_es)
+            # Skip empty buckets (no life or es side reached threshold)
+            if "life" in bucket or "es" in bucket:
+                level_buckets[bucket_name] = bucket
+
+        if level_buckets:
+            print("=== LEVEL BUCKETS ===")
+            for name, b in level_buckets.items():
+                pieces = []
+                if "life" in b: pieces.append(f"life={b['life']['builds_analysed']}")
+                if "es"   in b: pieces.append(f"es={b['es']['builds_analysed']}")
+                print(f"  {name:6s} (lvl {b['level_range']:6s}) n={b['builds_analysed']}  ({', '.join(pieces)})")
+            print()
 
     report = {
         "skill":            item if item else skill,
@@ -523,6 +717,7 @@ def analyse(skill: str, ascendancy: str, experience_level: str,
         "builds_analysed":  len(life_xmls) + len(es_xmls),
         "life":             results.get("life", {}),
         "es":               results.get("es", {}),
+        "level_buckets":    level_buckets or None,
     }
     if item:
         report["item"] = item  # extra field so consumers can detect item-mode reports
