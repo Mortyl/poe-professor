@@ -1047,7 +1047,9 @@ def print_status(conn: sqlite3.Connection):
         variant_str = r["variant_companion"]
         skill_display = f"{r['skill']} + {variant_str}" if variant_str else r["skill"]
         err = f"  ← {r['error_msg'][:60]}" if r["error_msg"] else ""
-        print(f"  [{r['status']:8s}] {steps}  {r['builds_count']:>6,} builds  {skill_display}{err}")
+        status = r["status"] or "—"
+        builds = r["builds_count"] or 0
+        print(f"  [{status:8s}] {steps}  {builds:>6,} builds  {skill_display}{err}")
 
     total   = len(rows)
     done    = sum(1 for r in rows if r["status"] == "done")
