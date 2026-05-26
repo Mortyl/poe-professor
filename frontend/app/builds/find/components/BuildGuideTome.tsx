@@ -118,8 +118,39 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
   };
   const hasLife = !!guide.gear_data_life;
   const hasEs   = !!guide.gear_data_es;
-  const gearData    = gearTab === "life" ? guide.gear_data_life : guide.gear_data_es;
+
+  // Level-bucket toggle: 'all' shows the legacy life/es totals, 'early' and
+  // 'late' show the per-bucket sub-reports (endgame only — buckets carry
+  // separately analysed gear for lvl 80-95 vs lvl 96+ cohorts).
+  type LevelView = "all" | "early" | "late";
+  const [levelView, setLevelView] = useState<LevelView>("all");
+  const hasEarly = !!guide.level_buckets?.early;
+  const hasLate  = !!guide.level_buckets?.late;
+  const hasBucketToggle = hasEarly || hasLate;
+
+  const bucketSection = (
+    levelView === "early" ? guide.level_buckets?.early :
+    levelView === "late"  ? guide.level_buckets?.late  :
+    null
+  );
+
+  // Resolve the active gear data: prefer the bucket section if user is on
+  // early/late, else fall back to the legacy life/es. If the bucket doesn't
+  // have data for the current life/es tab, fall back to the legacy too.
+  const gearData = (
+    bucketSection
+      ? (gearTab === "life" ? bucketSection.life : bucketSection.es)
+        ?? (gearTab === "life" ? guide.gear_data_life : guide.gear_data_es)
+      : (gearTab === "life" ? guide.gear_data_life : guide.gear_data_es)
+  );
+  // useful_uniques aren't bucketed yet — keep them tied to life/es view
   const gearUniques = gearTab === "life" ? guide.useful_uniques : guide.useful_uniques_es;
+
+  const bucketLabel = (
+    levelView === "early" && bucketSection ? `Early EG · lvl ${bucketSection.level_range}` :
+    levelView === "late"  && bucketSection ? `Late EG · lvl ${bucketSection.level_range}`  :
+    undefined
+  );
 
   useEffect(() => {
     if (!hasLife && hasEs) setGearTab("es");
@@ -221,11 +252,50 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
                   </span>
                 )}
               </div>
+
+              {/* Trigger-chain banner: when the main skill is fired via a
+                  trigger gem (Cast on Critical / Cast on Hit / etc.), the
+                  user otherwise has no way to tell why both the trigger and
+                  a "secondary" skill (Spark) appear in the gem list. */}
+              {(guide.gem_link_data?.trigger_chains?.length ?? 0) > 0 && (
+                <div style={{
+                  margin: "0 0 12px",
+                  padding: "10px 12px",
+                  background: "linear-gradient(90deg, rgba(155,111,212,0.08) 0%, rgba(26,20,16,0) 100%)",
+                  border: "1px solid rgba(155,111,212,0.3)",
+                  borderLeft: "3px solid #9b6fd4",
+                  fontSize: "12px",
+                  color: "#c8bfa8",
+                }}>
+                  <span style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "9px",
+                    letterSpacing: "0.22em",
+                    textTransform: "uppercase",
+                    color: "#c4a0f0",
+                    marginRight: "10px",
+                  }}>Triggered Build</span>
+                  <span>
+                    <strong style={{ color: "#ddd" }}>{guide.skill}</strong> is fired by{" "}
+                    {guide.gem_link_data!.trigger_chains!.map((c, k) => (
+                      <span key={k}>
+                        {k > 0 && " or "}
+                        <strong style={{ color: "#c4a0f0" }}>{c.trigger_skill}</strong>
+                        {" "}({c.trigger_pct.toFixed(0)}%)
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              )}
+
               {topGemGroups.map((skill, i) => (
                 <div key={i} className={styles.gem}>
                   <div className={styles.gemHead}>
                     <span className={styles.gemBubble}>{skillInitial(skill.name)}</span>
                     <span className={styles.skillName}>{skill.name}</span>
+                    {skill.role && skill.role !== "secondary" && (
+                      <RoleBadge role={skill.role} />
+                    )}
                     <span className={styles.skillPct}>{skill.pct.toFixed(0)}%</span>
                   </div>
                   <div className={styles.supports}>
@@ -283,6 +353,43 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
         <section className={styles.detailSection}>
           <h2 className={styles.detailTitle}>Gear</h2>
           <div style={{ maxWidth: "1000px", marginLeft: "auto", marginRight: "auto" }}>
+
+            {/* Level-bucket toggle — Early EG (lvl 80-95) vs Late EG (lvl 96+).
+                Frames the gear panel as an upgrade ladder: lower-level cohorts
+                show what 'just-hit-maps' players have; high-level cohorts show
+                fully-optimised endgame. Only renders when bucket data exists. */}
+            {hasBucketToggle && (
+              <div style={{
+                display: "flex", gap: "4px",
+                marginBottom: "20px",
+                fontFamily: "var(--font-display)",
+                fontSize: "11px",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+              }}>
+                {(["all", ...(hasEarly ? ["early" as const] : []), ...(hasLate ? ["late" as const] : [])] as const).map(view => {
+                  const label =
+                    view === "all"   ? "All Levels" :
+                    view === "early" ? `Early EG · lvl ${guide.level_buckets?.early?.level_range ?? ""}` :
+                                       `Late EG · lvl ${guide.level_buckets?.late?.level_range ?? ""}`;
+                  const active = levelView === view;
+                  return (
+                    <button key={view} onClick={() => setLevelView(view)} style={{
+                      padding: "5px 14px",
+                      background: active ? "var(--amber)" : "transparent",
+                      border: `1px solid ${active ? "var(--amber)" : "var(--line)"}`,
+                      color: active ? "var(--bg-deep)" : "var(--text-dim)",
+                      cursor: "pointer",
+                      fontSize: "10px",
+                      letterSpacing: "0.18em",
+                    }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <GearPanel
               data={gearData}
               usefulUniques={gearUniques ?? []}
@@ -290,6 +397,7 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
               hasEs={hasEs}
               gearTab={gearTab}
               setGearTab={setGearTab}
+              bucketLabel={bucketLabel}
             />
           </div>
         </section>
@@ -352,5 +460,38 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
         </div>
       )}
     </div>
+  );
+}
+
+// ── Role badge ────────────────────────────────────────────────────────────
+// Small pill rendered next to a skill name when the role classifier tagged it
+// as something other than 'secondary' — lets users see at a glance that a
+// gem is an aura / trigger / utility skill rather than the main damage source.
+function RoleBadge({ role }: { role: "main" | "trigger" | "aura" | "utility" | "secondary" }) {
+  const palette: Record<string, { bg: string; border: string; fg: string }> = {
+    main:    { bg: "rgba(232,200,74,0.10)", border: "rgba(232,200,74,0.4)",  fg: "#e8c84a" },
+    trigger: { bg: "rgba(155,111,212,0.10)", border: "rgba(155,111,212,0.4)", fg: "#c4a0f0" },
+    aura:    { bg: "rgba(91,163,160,0.10)",  border: "rgba(91,163,160,0.4)",  fg: "#7dd8d4" },
+    utility: { bg: "rgba(160,160,160,0.10)", border: "rgba(160,160,160,0.4)", fg: "#c8bfa8" },
+    secondary: { bg: "transparent", border: "transparent", fg: "transparent" },
+  };
+  const p = palette[role] ?? palette.secondary;
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "1px 7px",
+      marginLeft: "6px",
+      fontFamily: "var(--font-display)",
+      fontSize: "8px",
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      background: p.bg,
+      border: `1px solid ${p.border}`,
+      color: p.fg,
+      borderRadius: "2px",
+    }}>
+      {role}
+    </span>
   );
 }

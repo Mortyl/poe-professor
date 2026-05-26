@@ -34,18 +34,29 @@ class BuildRequest(BaseModel):
 class GemEntry(BaseModel):
     name: str
     pct: float
+    tier: Optional[str] = None    # "mandatory" | "recommended" | "common" | "niche"
+
+
+class TriggerChain(BaseModel):
+    """Describes how the main skill is fired (e.g. via Cast on Critical)."""
+    trigger_skill: str            # e.g. "Cast on Critical"
+    trigger_pct: float            # % of builds with this trigger setup
 
 
 class SkillGem(BaseModel):
     name: str
     pct: float                    # % of builds using this active skill
     supports: List[GemEntry]      # top supports linked to this skill, ordered by adoption %
+    role: Optional[str] = None    # "main" | "trigger" | "aura" | "utility" | "secondary"
+    tier: Optional[str] = None    # semantic confidence label
+    triggered_by: List[TriggerChain] = []  # populated on the main-skill entry when triggered
 
 
 class GemLinkData(BaseModel):
     main_skill: str               # primary skill (e.g. "Lightning Arrow")
     skill_gems: List[SkillGem]    # active skills with their per-skill supports
     builds_analysed: int = 0
+    trigger_chains: List[TriggerChain] = []  # top-level for cases where main isn't directly cast
 
 
 class UniqueItem(BaseModel):
@@ -53,6 +64,7 @@ class UniqueItem(BaseModel):
     base: str
     slot: str
     pct: float
+    tier: Optional[str] = None    # semantic confidence label
 
 
 class GearSlot(BaseModel):
@@ -69,12 +81,44 @@ class JewelBase(BaseModel):
     top_mods: List[str] = []
 
 
+class SignaturePair(BaseModel):
+    """Two unique items that co-occur in >=50% of builds in the cohort."""
+    items: List[str]              # length 2 (or 3 for trinity)
+    joint_pct: float
+
+
+class SignatureItems(BaseModel):
+    """Surfaces what defines the build — not just per-slot top items."""
+    mandatory: List["UniqueItem"] = []   # individual uniques at >=85%
+    pairs:     List["SignaturePair"] = []
+    trinity:   List["SignaturePair"] = []  # SignaturePair with 3 items
+
+
+class LevelBucketSection(BaseModel):
+    """A gear cohort sliced by character level (endgame only)."""
+    level_range:     str          # "80-95" or "96+"
+    builds_analysed: int
+    life:            Optional["GearData"] = None
+    es:              Optional["GearData"] = None
+
+
 class GearData(BaseModel):
     builds_analysed: int = 0
     slots: List[GearSlot] = []
     top_charm_uniques: List["UniqueItem"] = []
     top_jewel_bases: List["JewelBase"] = []
     top_jewel_uniques: List["UniqueItem"] = []
+    signature_items: Optional[SignatureItems] = None
+
+
+class LevelBuckets(BaseModel):
+    """
+    Endgame-only: 'early' (lvl 80-95) and 'late' (lvl 96+) cohorts so the UI
+    can render a 'just hit maps' vs 'fully optimised' upgrade ladder. Either
+    bucket may be missing if the snapshot data didn't yield enough builds.
+    """
+    early: Optional[LevelBucketSection] = None
+    late:  Optional[LevelBucketSection] = None
 
 
 class BuildGuide(BaseModel):
@@ -93,8 +137,9 @@ class BuildGuide(BaseModel):
     gem_link_data: Optional[GemLinkData] = None  # structured gem data from real builds
     useful_uniques: List[UniqueItem] = []         # top unique items (life builds)
     useful_uniques_es: List[UniqueItem] = []      # top unique items (ES builds)
-    gear_data_life: Optional[GearData] = None     # per-slot gear — life builds
-    gear_data_es: Optional[GearData] = None       # per-slot gear — ES builds
+    gear_data_life: Optional[GearData] = None     # per-slot gear — life builds (legacy: all levels combined)
+    gear_data_es: Optional[GearData] = None       # per-slot gear — ES builds   (legacy: all levels combined)
+    level_buckets: Optional[LevelBuckets] = None  # endgame upgrade ladder — early (lvl 80-95) + late (lvl 96+)
     pob_export: Optional[str] = None              # canonical PoB2 export string (base64 zlib XML) — guide supports patched into a real player base
     pob_provenance: Optional[dict] = None         # {snapshot, level, node_overlap, support_overlap, supports_rewritten}
     data_pending: bool = False                    # True when no gem/gear/passive report exists yet — backend has tree only

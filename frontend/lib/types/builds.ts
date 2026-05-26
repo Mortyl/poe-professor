@@ -7,21 +7,39 @@
  * build viewers, etc.) — change here once when the API shape evolves.
  */
 
+/** Semantic adoption label. Mirrors backend `_tier_label`:
+ *   mandatory >=85%  ·  recommended >=50%  ·  common >=25%  ·  niche <25% */
+export type Tier = "mandatory" | "recommended" | "common" | "niche";
+
+/** A skill's role in the build — only present on gem reports generated
+ *  with the role classifier (post-May 2026). */
+export type SkillRole = "main" | "trigger" | "aura" | "utility" | "secondary";
+
+export interface TriggerChain {
+  trigger_skill: string;     // e.g. "Cast on Critical"
+  trigger_pct: number;
+}
+
 export interface GemEntry {
   name: string;
   pct: number;
+  tier?: Tier;
 }
 
 export interface SkillGem {
   name: string;
   pct: number;
   supports: GemEntry[];
+  role?: SkillRole;
+  tier?: Tier;
+  triggered_by?: TriggerChain[];
 }
 
 export interface GemLinkData {
   main_skill: string;
   skill_gems: SkillGem[];
   builds_analysed: number;
+  trigger_chains?: TriggerChain[];   // top-level for CoC-style builds where main isn't directly cast
 }
 
 export interface UniqueItem {
@@ -29,6 +47,7 @@ export interface UniqueItem {
   base: string;
   slot: string;
   pct: number;
+  tier?: Tier;
 }
 
 export interface GearSlot {
@@ -39,9 +58,36 @@ export interface GearSlot {
   top_mods: string[];
 }
 
+export interface SignaturePair {
+  items: string[];           // 2 names for pairs, 3 for trinity
+  joint_pct: number;
+}
+
+export interface SignatureItems {
+  mandatory: UniqueItem[];   // individual uniques >=85%
+  pairs:     SignaturePair[];
+  trinity:   SignaturePair[];
+}
+
 export interface GearData {
   builds_analysed: number;
   slots: GearSlot[];
+  top_charm_uniques?: UniqueItem[];
+  top_jewel_bases?:   { base: string; pct: number; top_mods: string[] }[];
+  top_jewel_uniques?: UniqueItem[];
+  signature_items?: SignatureItems | null;
+}
+
+export interface LevelBucketSection {
+  level_range:     string;   // "80-95" or "96+"
+  builds_analysed: number;
+  life?: GearData | null;
+  es?:   GearData | null;
+}
+
+export interface LevelBuckets {
+  early?: LevelBucketSection | null;
+  late?:  LevelBucketSection | null;
 }
 
 export interface PobProvenance {
@@ -70,6 +116,7 @@ export interface BuildGuide {
   useful_uniques_es: UniqueItem[];
   gear_data_life: GearData | null;
   gear_data_es: GearData | null;
+  level_buckets?: LevelBuckets | null;     // endgame upgrade ladder (early lvl 80-95 / late lvl 96+)
   pob_export: string | null;
   pob_provenance: PobProvenance | null;
   data_pending: boolean;

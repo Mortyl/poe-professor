@@ -98,7 +98,11 @@ def _get_mock_build(skill: str, ascendancy: str, weapon_type: str, class_name: s
 
 def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
     """Return a BuildGuide with the passive tree and gem links populated from real data."""
-    from models.schemas import GemLinkData, SkillGem, GemEntry, UniqueItem, GearData, GearSlot, JewelBase
+    from models.schemas import (
+        GemLinkData, SkillGem, GemEntry, UniqueItem, GearData, GearSlot,
+        JewelBase, TriggerChain, SignaturePair, SignatureItems,
+        LevelBuckets, LevelBucketSection,
+    )
 
     tree_result = recommend_nodes_branched(
         skill=request.skill,
@@ -117,11 +121,23 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
     gem_link_data = None
     gem_report = _load_report(request.skill, request.ascendancy, "gems")
     if gem_report and gem_report.get("builds_analysed", 0) >= 10:
+        def _to_chain(c: dict) -> TriggerChain:
+            return TriggerChain(
+                trigger_skill=c.get("trigger_skill", ""),
+                trigger_pct=c.get("trigger_pct", 0.0),
+            )
+
         skill_gems = [
             SkillGem(
                 name=g["name"],
                 pct=g["pct"],
-                supports=[GemEntry(name=s["name"], pct=s["pct"]) for s in g.get("supports", [])],
+                supports=[
+                    GemEntry(name=s["name"], pct=s["pct"], tier=s.get("tier"))
+                    for s in g.get("supports", [])
+                ],
+                role=g.get("role"),
+                tier=g.get("tier"),
+                triggered_by=[_to_chain(c) for c in g.get("triggered_by", [])],
             )
             for g in gem_report.get("skill_gems", [])
             if g["name"] not in DEFAULT_ATTACKS
@@ -130,10 +146,30 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
             main_skill=request.skill,
             skill_gems=skill_gems,
             builds_analysed=gem_report["builds_analysed"],
+            trigger_chains=[_to_chain(c) for c in gem_report.get("trigger_chains", [])],
         )
 
     CHARM_SLOT_NAMES = ["Charm 1", "Charm 2", "Charm 3"]
     CHARM_SLOT_SET   = set(CHARM_SLOT_NAMES)
+
+    def _build_signature_items(raw: dict | None) -> SignatureItems | None:
+        """Map the analyser's signature_items dict to the Pydantic SignatureItems."""
+        if not raw:
+            return None
+        mandatory = [
+            UniqueItem(name=m.get("name", ""), base=m.get("base", ""),
+                       slot="", pct=m.get("pct", 0.0), tier=m.get("tier"))
+            for m in raw.get("mandatory", [])
+        ]
+        pairs = [
+            SignaturePair(items=p.get("items", []), joint_pct=p.get("joint_pct", 0.0))
+            for p in raw.get("pairs", [])
+        ]
+        trinity = [
+            SignaturePair(items=t.get("items", []), joint_pct=t.get("joint_pct", 0.0))
+            for t in raw.get("trinity", [])
+        ]
+        return SignatureItems(mandatory=mandatory, pairs=pairs, trinity=trinity)
 
     def _build_gear_data(section: dict) -> GearData | None:
         if not section:
@@ -251,6 +287,7 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
             top_charm_uniques=top_charm_uniques,
             top_jewel_bases=top_jewel_bases,
             top_jewel_uniques=top_jewel_uniques,
+            signature_items=_build_signature_items(section.get("signature_items")),
         )
 
     # Load gear report (life/ES split)
@@ -258,6 +295,7 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
     useful_uniques_es = []
     gear_data_life    = None
     gear_data_es      = None
+    level_buckets     = None
     gear_report = _load_report(request.skill, request.ascendancy, "gear")
     if gear_report:
         life_section = gear_report.get("life", {})
@@ -266,6 +304,25 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
         # Build gear data first so we know which uniques are already shown in slots
         gear_data_life = _build_gear_data(life_section)
         gear_data_es   = _build_gear_data(es_section) if es_section.get("builds_analysed", 0) >= 10 else None
+
+        # Endgame-only: surface the early-EG / late-EG level buckets so the UI
+        # can render an upgrade ladder (lvl 80-95 → lvl 96+ progression).
+        raw_buckets = gear_report.get("level_buckets") or {}
+        if raw_buckets:
+            def _bucket(name: str) -> LevelBucketSection | None:
+                b = raw_buckets.get(name)
+                if not b:
+                    return None
+                return LevelBucketSection(
+                    level_range=b.get("level_range", ""),
+                    builds_analysed=b.get("builds_analysed", 0),
+                    life=_build_gear_data(b["life"]) if b.get("life") else None,
+                    es=_build_gear_data(b["es"]) if b.get("es") else None,
+                )
+            early = _bucket("early")
+            late  = _bucket("late")
+            if early or late:
+                level_buckets = LevelBuckets(early=early, late=late)
 
         # Collect unique names already displayed in gear slots for each variant
         slotted_life = {
@@ -360,6 +417,7 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
         useful_uniques_es=useful_uniques_es,
         gear_data_life=gear_data_life,
         gear_data_es=gear_data_es,
+        level_buckets=level_buckets,
         pob_export=pob_export,
         pob_provenance=pob_provenance_dict,
         data_pending=data_pending,

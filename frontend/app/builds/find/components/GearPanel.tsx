@@ -24,12 +24,24 @@ interface JewelBase {
   top_mods: string[];
 }
 
+interface SignaturePair {
+  items: string[];          // length 2 for pairs, 3 for trinity
+  joint_pct: number;
+}
+
+interface SignatureItems {
+  mandatory: UniqueItem[];
+  pairs:     SignaturePair[];
+  trinity:   SignaturePair[];
+}
+
 interface GearData {
   builds_analysed: number;
   slots: GearSlot[];
   top_charm_uniques?: UniqueItem[];
   top_jewel_bases?: JewelBase[];
   top_jewel_uniques?: UniqueItem[];
+  signature_items?: SignatureItems | null;
 }
 
 interface GearPanelProps {
@@ -39,6 +51,7 @@ interface GearPanelProps {
   hasEs?: boolean;
   gearTab?: "life" | "es";
   setGearTab?: (tab: "life" | "es") => void;
+  bucketLabel?: string;     // optional override shown alongside the Main heading (e.g. "Late EG · lvl 96+")
 }
 
 const SLOT_ORDER = [
@@ -62,7 +75,7 @@ const SLOT_LABELS: Record<string, string> = {
   "Belt":        "Belt",
 };
 
-export default function GearPanel({ data, usefulUniques, hasLife, hasEs, gearTab, setGearTab }: GearPanelProps) {
+export default function GearPanel({ data, usefulUniques, hasLife, hasEs, gearTab, setGearTab, bucketLabel }: GearPanelProps) {
   const slotMap = Object.fromEntries(data.slots.map(s => [s.slot, s]));
   const slots = SLOT_ORDER.map(name => slotMap[name]).filter(Boolean);
 
@@ -75,12 +88,23 @@ export default function GearPanel({ data, usefulUniques, hasLife, hasEs, gearTab
   const hasCharms = (data.top_charm_uniques?.length ?? 0) > 0;
   const hasUsefulUniques = (usefulUniques?.length ?? 0) > 0;
 
+  const sig = data.signature_items;
+  const hasSignature = !!sig && (
+    sig.mandatory.length > 0 ||
+    sig.pairs.length > 0 ||
+    sig.trinity.length > 0
+  );
+
   return (
     <div>
 
+      {/* Build Signature — the items that define this build, surfaced from
+          cross-slot co-occurrence rather than per-slot top-X. */}
+      {hasSignature && <SignatureBanner sig={sig!} />}
+
       {/* Gear slots */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-        <SectionHead label="Main" style={{ marginBottom: 0, flex: 1 }} />
+        <SectionHead label={bucketLabel ? `Main · ${bucketLabel}` : "Main"} style={{ marginBottom: 0, flex: 1 }} />
         {hasLife && hasEs && setGearTab && gearTab && (
           <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
             {(["life", "es"] as const).map(tab => (
@@ -349,6 +373,119 @@ function ShelfCard({ kind, slotTag, name, base, iconName, iconBase, mods }: {
     </div>
   );
 }
+
+// ── Signature banner ─────────────────────────────────────────────────────
+// Surfaces the build's defining items: mandatory single uniques, top
+// pairs that co-occur in >=50% of builds, and trinity combinations.
+// Renders only when the signature_items field is populated.
+function SignatureBanner({ sig }: { sig: SignatureItems }) {
+  const topTrinity = sig.trinity[0];
+  const topPair    = sig.pairs[0];
+
+  return (
+    <div style={{
+      marginBottom: "24px",
+      padding: "14px 16px",
+      background: "linear-gradient(90deg, rgba(232,200,74,0.06) 0%, rgba(26,20,16,0) 100%)",
+      border: "1px solid rgba(232,200,74,0.25)",
+      borderLeft: "3px solid var(--amber)",
+    }}>
+      <div style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "10px",
+        letterSpacing: "0.28em",
+        textTransform: "uppercase",
+        color: "var(--amber)",
+        marginBottom: "10px",
+      }}>
+        Build Signature
+      </div>
+
+      {/* Mandatory items — single uniques in >=85% of builds */}
+      {sig.mandatory.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: topTrinity || topPair ? "10px" : 0 }}>
+          {sig.mandatory.slice(0, 4).map((m, i) => (
+            <div key={i} style={signatureChipStyle("mandatory")}>
+              <span style={{ color: "var(--amber-bright)", fontWeight: 600 }}>{m.name}</span>
+              <span style={signatureChipPctStyle}>{m.pct.toFixed(0)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Top trinity (3-item combo) — the spine of the build */}
+      {topTrinity && (
+        <div style={signatureRowStyle}>
+          <span style={signatureLabelStyle}>Trinity</span>
+          <span style={signatureItemsStyle}>{topTrinity.items.join(" + ")}</span>
+          <span style={signatureBigPctStyle}>{topTrinity.joint_pct.toFixed(0)}%</span>
+        </div>
+      )}
+
+      {/* Top pair — falls back to the strongest pair if no trinity */}
+      {!topTrinity && topPair && (
+        <div style={signatureRowStyle}>
+          <span style={signatureLabelStyle}>Pair</span>
+          <span style={signatureItemsStyle}>{topPair.items.join(" + ")}</span>
+          <span style={signatureBigPctStyle}>{topPair.joint_pct.toFixed(0)}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function signatureChipStyle(_tier: string): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "3px 10px",
+    background: "rgba(232,200,74,0.08)",
+    border: "1px solid rgba(232,200,74,0.3)",
+    borderRadius: "2px",
+    fontSize: "12px",
+    fontFamily: "var(--font-serif)",
+  };
+}
+
+const signatureChipPctStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "10px",
+  color: "var(--amber-dim)",
+  letterSpacing: "0.05em",
+};
+
+const signatureRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "10px",
+};
+
+const signatureLabelStyle: React.CSSProperties = {
+  fontFamily: "var(--font-display)",
+  fontSize: "9px",
+  letterSpacing: "0.22em",
+  textTransform: "uppercase",
+  color: "var(--text-faint)",
+  flexShrink: 0,
+};
+
+const signatureItemsStyle: React.CSSProperties = {
+  fontFamily: "var(--font-serif)",
+  fontSize: "13px",
+  color: "var(--amber-bright)",
+  fontWeight: 600,
+  flex: 1,
+};
+
+const signatureBigPctStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "11px",
+  color: "var(--amber)",
+  letterSpacing: "0.06em",
+  fontWeight: 600,
+};
+
 
 // ── Section head (label + gradient line) ─────────────────────────────────
 
