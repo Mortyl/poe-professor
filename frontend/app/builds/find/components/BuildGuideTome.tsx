@@ -179,6 +179,13 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
         </div>
       )}
 
+      {/* Build trajectory — only renders when the displayed combo isn't a
+          straightforward LS+EG continuous build. Honest framing for users
+          about whether they're looking at the destination or a stepping stone. */}
+      {guide.trajectory && guide.trajectory.type !== "continuous" && (
+        <TrajectoryBanner trajectory={guide.trajectory} skill={guide.skill} ascendancy={guide.ascendancy} />
+      )}
+
       {/* ── TOME ─────────────────────────────────────────────────────── */}
       <div className={styles.tome}>
 
@@ -462,6 +469,91 @@ export default function BuildGuideTome({ guide, selectedMeta, onReset }: Props) 
     </div>
   );
 }
+
+// ── Trajectory banner ─────────────────────────────────────────────────────
+// Tells the user whether the build they're looking at is the build's
+// destination (continuous → no banner), a stepping stone toward a known
+// target (migration), a niche endgame pick (niche_endgame), or a build that
+// only exists at endgame and isn't a viable league starter (endgame_only).
+//
+// Tone: factual, not preachy. Each variant has a distinct accent colour so
+// the banner doesn't blend into the data_pending notice above it.
+function TrajectoryBanner({
+  trajectory, skill, ascendancy,
+}: {
+  trajectory: NonNullable<BuildGuide["trajectory"]>;
+  skill: string;
+  ascendancy: string;
+}) {
+  let accent = "var(--amber)";
+  let label  = "";
+  let body: React.ReactNode = null;
+
+  if (trajectory.type === "migration") {
+    accent = "#c4a0f0";
+    label  = "Leveling Build";
+    body = (
+      <>
+        <strong style={{ color: "#ddd" }}>{skill} {ascendancy}</strong> is popular for league-start
+        and early maps, but most players transition into{" "}
+        <strong style={{ color: "#c4a0f0" }}>
+          {trajectory.target_skill} {ascendancy}
+        </strong>{" "}
+        at endgame — {Math.round(trajectory.target_pct)}% of those builds keep {skill} as a
+        triggering/utility skill. The data below covers the leveling phase; for the
+        endgame version, browse to <em>{trajectory.target_skill} {ascendancy}</em>.
+      </>
+    );
+  } else if (trajectory.type === "niche_endgame") {
+    accent = "#8a8a8a";
+    label  = "Niche Endgame";
+    body = (
+      <>
+        <strong style={{ color: "#ddd" }}>{skill} {ascendancy}</strong> remains viable at endgame
+        but isn&apos;t popular enough to appear in our top-100 ladder sampling.
+        The league-start data below is your best reference — the build largely scales
+        the same way into maps and beyond.
+      </>
+    );
+  } else if (trajectory.type === "endgame_only") {
+    accent = "#7dd8d4";
+    label  = "Endgame Build";
+    body = (
+      <>
+        <strong style={{ color: "#ddd" }}>{skill} {ascendancy}</strong> is a planned endgame build —
+        players generally don&apos;t league-start with it. Expect to respec into it once you
+        have the gear / spirit / mod-tier prerequisites met (typically lvl 90+).
+      </>
+    );
+  }
+
+  return (
+    <div style={{
+      margin: "0 0 20px",
+      padding: "12px 16px",
+      background: "linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(26,20,16,0) 100%)",
+      border: "1px solid rgba(255,255,255,0.12)",
+      borderLeft: `3px solid ${accent}`,
+      fontSize: "13px",
+      lineHeight: 1.55,
+      color: "#c8bfa8",
+    }}>
+      <span style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "9px",
+        letterSpacing: "0.24em",
+        textTransform: "uppercase",
+        color: accent,
+        marginRight: "12px",
+        whiteSpace: "nowrap",
+      }}>
+        {label}
+      </span>
+      {body}
+    </div>
+  );
+}
+
 
 // ── Role badge ────────────────────────────────────────────────────────────
 // Small pill rendered next to a skill name when the role classifier tagged it

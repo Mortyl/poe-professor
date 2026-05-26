@@ -121,6 +121,20 @@ class LevelBuckets(BaseModel):
     late:  Optional[LevelBucketSection] = None
 
 
+class BuildTrajectory(BaseModel):
+    """
+    Classifies whether the displayed combo is the build's destination or just
+    a stepping stone. Drives the trajectory banner on the build guide:
+      - continuous   — combo has both LS and EG data, upgrade ladder works
+      - migration    — combo is LS-only, players transition into target_skill
+      - niche_endgame — LS-only, no migration signal (LS data IS canonical)
+      - endgame_only — EG-only, planned endgame build (not a league starter)
+    """
+    type: str                                  # see above
+    target_skill: str = ""                     # populated when type=migration
+    target_pct: float = 0.0                    # adoption of source in target combo
+
+
 class BuildGuide(BaseModel):
     skill: str
     ascendancy: str
@@ -140,6 +154,7 @@ class BuildGuide(BaseModel):
     gear_data_life: Optional[GearData] = None     # per-slot gear — life builds (legacy: all levels combined)
     gear_data_es: Optional[GearData] = None       # per-slot gear — ES builds   (legacy: all levels combined)
     level_buckets: Optional[LevelBuckets] = None  # endgame upgrade ladder — early (lvl 80-95) + late (lvl 96+)
+    trajectory: Optional[BuildTrajectory] = None  # is this build's data the destination or a stepping stone?
     pob_export: Optional[str] = None              # canonical PoB2 export string (base64 zlib XML) — guide supports patched into a real player base
     pob_provenance: Optional[dict] = None         # {snapshot, level, node_overlap, support_overlap, supports_rewritten}
     data_pending: bool = False                    # True when no gem/gear/passive report exists yet — backend has tree only

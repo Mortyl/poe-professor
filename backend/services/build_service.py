@@ -7,6 +7,7 @@ from services.knowledge_service import build_knowledge_context
 from services.tree_service import recommend_nodes_branched
 from services.pob_service import build_canonical_pob_code
 from services.report_loader import load_report as _load_report
+from services.trajectory_service import detect_trajectory as _detect_trajectory
 
 
 def build_real_data_context(skill: str, ascendancy: str) -> str:
@@ -101,7 +102,7 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
     from models.schemas import (
         GemLinkData, SkillGem, GemEntry, UniqueItem, GearData, GearSlot,
         JewelBase, TriggerChain, SignaturePair, SignatureItems,
-        LevelBuckets, LevelBucketSection,
+        LevelBuckets, LevelBucketSection, BuildTrajectory,
     )
 
     tree_result = recommend_nodes_branched(
@@ -399,6 +400,19 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
         and gear_data_es is None
     )
 
+    # Trajectory: is this combo continuous / a leveling-only build / niche
+    # endgame / endgame-only? Detected from the existing report corpus, no
+    # extra scraping required.
+    raw_traj = _detect_trajectory(request.skill, request.ascendancy)
+    trajectory = (
+        BuildTrajectory(
+            type=raw_traj.type,
+            target_skill=raw_traj.target_skill,
+            target_pct=raw_traj.target_pct,
+        )
+        if raw_traj is not None else None
+    )
+
     return BuildGuide(
         skill=request.skill,
         ascendancy=request.ascendancy,
@@ -418,6 +432,7 @@ def _get_tree_only_build(request: BuildRequest) -> BuildGuide:
         gear_data_life=gear_data_life,
         gear_data_es=gear_data_es,
         level_buckets=level_buckets,
+        trajectory=trajectory,
         pob_export=pob_export,
         pob_provenance=pob_provenance_dict,
         data_pending=data_pending,

@@ -90,6 +90,19 @@ export interface LevelBuckets {
   late?:  LevelBucketSection | null;
 }
 
+/** Whether the displayed combo's data is its destination or a stepping stone.
+ *  - continuous   = both LS and EG data exist; the level-bucket toggle works
+ *  - migration    = LS-only build; players transition to target_skill at EG
+ *  - niche_endgame = LS-only, no migration target — LS data IS canonical
+ *  - endgame_only = EG-only, planned endgame build (not league-startable) */
+export type TrajectoryType = "continuous" | "migration" | "niche_endgame" | "endgame_only";
+
+export interface BuildTrajectory {
+  type:          TrajectoryType;
+  target_skill:  string;      // populated only when type='migration'
+  target_pct:    number;
+}
+
 export interface PobProvenance {
   snapshot: string;
   level: number;
@@ -117,6 +130,7 @@ export interface BuildGuide {
   gear_data_life: GearData | null;
   gear_data_es: GearData | null;
   level_buckets?: LevelBuckets | null;     // endgame upgrade ladder (early lvl 80-95 / late lvl 96+)
+  trajectory?: BuildTrajectory | null;     // is the displayed data the destination or a stepping stone?
   pob_export: string | null;
   pob_provenance: PobProvenance | null;
   data_pending: boolean;
