@@ -69,3 +69,8 @@ backend/scripts/icon_extract/tables/
 
 # Extracted item PNGs — regen via backend/scripts/icon_extract/extract_all.mjs
 frontend/public/icons/items/
+
+# Internal notes (kept local, not published)
+PLAN.md
+CLAUDE.md
+AGENTS.md
